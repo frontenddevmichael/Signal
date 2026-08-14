@@ -1,0 +1,35 @@
+# §21.2 CI: lint + typecheck + build + unit tests + §21.9 isolation check on PRs.
+# §21.1 — merge/invoice/webhook logic is highest-risk; Vitest covers it (91 tests).
+# Playwright smoke needs a running Convex + seeded auth, so it runs on-demand
+# (npm run test:smoke) rather than blocking every PR.
+name: lint
+
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      # §21.9 — every query/mutation must resolve the authenticated user FIRST.
+      # This grep asserts no handler reads the DB before its auth gate.
+      - name: Isolation check (user-scoping discipline)
+        run: |
+          cd convex && for f in $(grep -rl "query(\|mutation(" --include="*.ts" . | grep -v _generated | grep -v "auth.ts\|http.ts\|webhook\|oauth\|inbound\|whatsappWebhook\|paymentWebhook"); do
+            FIRST_DB=$(grep -n "ctx.db\." "$f" | head -1 | cut -d: -f1)
+            FIRST_AUTH=$(grep -n "getAuthUserId\|userIdOrThrow\|ctx.auth" "$f" | head -1 | cut -d: -f1)
+            if [ -n "$FIRST_DB" ] && { [ -z "$FIRST_AUTH" ] || [ "$FIRST_DB" -lt "$FIRST_AUTH" ]; }; then
+              echo "ISOLATION VIOLATION: $f reads the DB (line $FIRST_DB) before its auth gate (line ${FIRST_AUTH:-none})"
+              exit 1
+            fi
+          done
+          echo "Isolation check passed: every handler resolves auth before DB access."

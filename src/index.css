@@ -1,0 +1,3189 @@
+/* ============================================================
+   Signal — design tokens (v3, Quiet Future OS)
+   Source of truth: signal-design.md §1 — supersedes PRD §22.
+   Dark-first: :root IS the dark ladder; [data-theme="light"]
+   is its inversion, not a separate design.
+
+   v3 deltas vs v2:
+   - Elevation (L0→L3 shadows) is the primary depth signal and
+     replaces hairline borders on containers. Borders remain only
+     where two flat surfaces meet (dividers, table rows).
+   - Corner geometry is a SQUIRCLE (continuous superellipse), not
+     a circular arc. corner-shape is Chromium-only today, so the
+     radius system is defined once and upgraded via @supports —
+     every browser looks intentional, supporting browsers get the
+     continuous curve.
+   - One easing curve, one duration band (200–350ms), a 40–80ms
+     stagger scale for sibling entrances. prefers-reduced-motion
+     is respected globally.
+   - Spacing is a density-flexible scale; no fixed row heights.
+   - Shell (sidebar/topbar/tabbar) is FLAT elevation-1, never
+     glass. Glass is reserved for L2/L3 floating surfaces only.
+   ============================================================ */
+
+/* ---- 1.1 Color — monochrome, one reserved beacon ------------------
+   Depth from the surface ladder + elevation, never hue. Status is
+   carried by shape/weight + muted functional hues (Phase D). ------ */
+:root {
+  /* surface ladder — the resting base for every surface value */
+  --surface-0: #08090a; /* app floor — near-black, not navy, not warm */
+  --surface-1: #0f1011; /* flat shell: sidebar, topbar, tabbar */
+  --surface-2: #141516; /* cards, table rows on hover */
+  --surface-3: #18191a; /* raised — dropdowns, popovers */
+  --surface-4: #1f2022; /* modals, highest resting elevation */
+
+  /* hairlines — dividers BETWEEN flat surfaces; containers lift
+     off the floor with elevation instead of a cardinal edge (v3) */
+  --border-subtle: #1c1d1f;  /* default dividers, table rows */
+  --border-default: #2a2c2e; /* input borders, inset fixtures */
+  --border-strong: #3a3c3f;  /* focus, active/selected */
+
+  /* text — the only "accent" is contrast itself */
+  --text-primary: #f7f8f8;
+  --text-secondary: #9a9da2;
+  --text-tertiary: #878a8f;
+  --text-disabled: #45474a;
+
+  /* status — monochrome intensity register; muted functional hues
+     are restored alongside it (shape/weight carry the meaning,
+     hue reinforces it — never alone, §D). */
+  --status-positive: #d4d6d9; /* paid — resolved */
+  --status-warning: #9a9da2;  /* pending */
+  --status-critical: #f7f8f8; /* overdue */
+  --status-inert: #45474a;    /* void/disconnected */
+  --status-positive-hue: #6e8b6e; /* muted sage */
+  --status-warning-hue: #b08948;  /* muted gold */
+  --status-critical-hue: #b2604a; /* muted rust */
+  --status-inert-hue: #8a8880;    /* muted stone */
+
+  /* ---- 1.2 Typography ---------------------------------------- */
+  --font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  /* weights: 300 display numerals · 400 body · 510 considered · 590 emphasis */
+  --tracking-display: -0.02em; /* 32px+ */
+  --tracking-tight: -0.01em;   /* 18–32px */
+  --tracking-normal: 0;        /* body, ≤16px */
+
+  /* ---- 1.3 Elevation — L0 base → L1 card → L2 raised → L3 modal ---
+     L1 is the FLAT shell + cards: surfaces step off L0 by value + a
+     barely-there shadow. L2 floats (popovers, toasts, palette input).
+     L3 is the dialog. On near-black paper shadows are heavy by
+     necessity; light mode drops both alpha and spread. */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
+  --elev-1-up: 0 -1px 2px rgba(0, 0, 0, 0.35), 0 -1px 1px rgba(0, 0, 0, 0.25);
+  --elev-1-right: 1px 0 2px rgba(0, 0, 0, 0.35), 1px 0 1px rgba(0, 0, 0, 0.25);
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --elev-3: 0 16px 44px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+
+  /* ---- 1.4 Corners — SQUIRCLE scale ----------------------------------
+     Baseline values render as circular arcs everywhere. Inside
+     @supports (corner-shape: squircle) the same radii render
+     continuous superellipse curves — geometry upgrades, size stays. */
+  --radius-xs: 4px;  /* badges, tags, dots */
+  --radius-sm: 8px;  /* buttons, inputs, controls */
+  --radius-md: 12px; /* cards, panels, rows */
+  --radius-lg: 20px; /* modals, large surfaces */
+
+  /* ---- 1.5 Motion — one easing, one duration band, a stagger scale - */
+  --duration-instant: 120ms;  /* press feedback, hover tint only */
+  --duration-fast: 200ms;     /* most transitions — the workhorse */
+  --duration-moderate: 240ms; /* standard state changes */
+  --duration-panel: 320ms;    /* modals, sheets, palette */
+  --ease-signal: cubic-bezier(0.32, 0.72, 0, 1); /* the ONE curve */
+  --scale-press: 0.97;        /* tactile press on interactive elements */
+
+  /* sibling entrance stagger — delay each child by one step */
+  --stagger-sm: 40ms;
+  --stagger-md: 60ms;
+  --stagger-lg: 80ms;
+
+  /* ---- 1.6 Spacing — density-flexible scale ------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  color-scheme: dark;
+
+  /* ---- 1.7 Glass — L2/L3 floating surfaces only ----------------
+     Shell stays flat (v3 lock). Glass panels keep a solid inner
+     card under any text — blur is atmospheric, never load-bearing. */
+  --glass-bg: rgba(24, 25, 26, 0.72);
+  --glass-border: rgba(247, 248, 248, 0.08);
+  --glass-blur: 18px;
+
+  /* ---- v1/v2 aliases — kept so no screen breaks mid-refactor ----
+     Each later phase re-points its components off these and the
+     list shrinks. Do not add new code referencing these names. */
+  --canvas: var(--surface-0);
+  --surface: var(--surface-1);
+  --surface-raised: var(--surface-2);
+  /* ink scale = theme-aware text ramp (ink-900 is PRIMARY text) */
+  --ink-100: #f7f8f8;
+  --ink-200: #d8dadc;
+  --ink-300: #c2c4c8;
+  --ink-400: var(--text-secondary);
+  --ink-500: #8a8d92;
+  --ink-600: var(--text-tertiary);
+  --ink-700: #56585c;
+  --ink-800: #45474a;
+  --ink-900: var(--text-primary);
+  --hairline: var(--border-subtle);
+  /* beacon → monochrome: primary actions are white-on-dark */
+  --beacon: var(--text-primary);
+  --beacon-strong: var(--status-positive);
+  --beacon-faint: rgba(247, 248, 248, 0.12);
+  --on-beacon: var(--surface-1);
+  /* status intensity aliases (hues live on the -hue names above) */
+  --status-paid: var(--status-positive);
+  --status-overdue: var(--status-critical);
+  --status-pending: var(--status-warning);
+  --status-void: var(--status-inert);
+  /* typography aliases */
+  --font-ui: var(--font-sans);
+  --font-display: var(--font-sans); /* Instrument Sans retired */
+  --mono: var(--font-mono);
+  /* radii */
+  --radius-control: var(--radius-sm);
+  --radius-card: var(--radius-md);
+  --radius-modal: var(--radius-lg);
+  /* motion — real tokens defined in §1.5 above; these are v1 names */
+  --duration-standard: var(--duration-moderate);
+  --ease-sheet: var(--ease-signal);
+  /* elevation */
+  --shadow-card: var(--elev-1);
+  --shadow-popover: var(--elev-2);
+  --shadow-modal: var(--elev-3);
+  /* previously-undefined names the codebase referenced (fixed here) */
+  --text-1: var(--text-primary);
+  --text-2: var(--text-secondary);
+  --text-3: var(--text-tertiary);
+  --border: var(--border-default);
+  --amber: var(--status-warning);
+  --danger: var(--status-critical);
+  --success: var(--status-positive);
+}
+
+/* ---- Light mode — the inverted ladder, not a separate design ---- */
+:root[data-theme="light"] {
+  --surface-0: #f3f2f0; /* floor — warm, light paper */
+  --surface-1: #f8f7f5; /* flat shell */
+  --surface-2: #fbfbf9; /* cards */
+  --surface-3: #fdfdfc; /* raised */
+  --surface-4: #ffffff; /* modals */
+
+  --border-subtle: #e7e6e4;
+  --border-default: #d8d7d4;
+  --border-strong: #a6a4a0;
+
+  --text-primary: #1a1b1d;
+  --text-secondary: #5c5f64;
+  --text-tertiary: #6d6e70;
+  --text-disabled: #b4b6ba;
+
+  --status-positive: #3f4348;
+  --status-warning: #6b6e73;
+  --status-critical: #1a1b1d;
+  --status-inert: #b4b6ba;
+  /* light hues — same register, tuned down a step for paper */
+  --status-positive-hue: #4f714f;
+  --status-warning-hue: #93703b;
+  --status-critical-hue: #a05337;
+  --status-inert-hue: #8a8880;
+
+  --elev-1: 0 1px 2px rgba(20, 21, 22, 0.06), 0 1px 1px rgba(20, 21, 22, 0.04);
+  --elev-1-up: 0 -1px 2px rgba(20, 21, 22, 0.06), 0 -1px 1px rgba(20, 21, 22, 0.04);
+  --elev-1-right: 1px 0 2px rgba(20, 21, 22, 0.06), 1px 0 1px rgba(20, 21, 22, 0.04);
+  --elev-2: 0 6px 18px rgba(20, 21, 22, 0.10), 0 2px 6px rgba(20, 21, 22, 0.06);
+  --elev-3: 0 20px 48px rgba(20, 21, 22, 0.18), 0 4px 14px rgba(20, 21, 22, 0.10);
+
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(26, 27, 29, 0.09);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+
+  --ink-100: #fafafa;
+  --ink-200: #e8e9ea;
+  --ink-300: #d6d7da;
+  --ink-400: #5c5f64;
+  --ink-500: #6e7176;
+  --ink-600: #8a8d92;
+  --ink-700: #9ea1a6;
+  --ink-800: #c0c2c6;
+  --ink-900: #1a1b1d;
+  --hairline: var(--border-subtle);
+  --beacon: var(--text-primary);
+  --beacon-strong: #2a2c2e;
+  --beacon-faint: rgba(26, 27, 29, 0.12);
+  --on-beacon: var(--surface-0);
+  --shadow-card: var(--elev-1);
+  --shadow-popover: var(--elev-2);
+  --shadow-modal: var(--elev-3);
+}
+
+/* ---- 1.8 Corner-shape upgrade (progressive enhancement) ---------
+   corner-shape is Chromium-only today (Chrome/Edge 139+). The
+   baseline renders circular arcs (border-radius alone) everywhere;
+   supporting browsers upgrade the SAME radius tokens to continuous
+   superellipse curves. corner-shape only acts on boxes with a
+   non-zero radius, so `*` is safe — zero-radius boxes are untouched. */
+@supports (corner-shape: squircle) {
+  :where(*) {
+    corner-shape: squircle;
+  }
+}
+
+/* ---- Base --------------------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--duration-standard) var(--ease-sheet),
+    color var(--duration-standard) var(--ease-sheet);
+}
+
+/* §22.2 — all numerals in Geist Mono: money, dates, invoice numbers. */
+.num,
+.money,
+.dates,
+.invoice-number,
+code,
+pre,
+time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+h1,
+h2,
+h3,
+.empty-state h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* §22.9 / §4 — 2px beacon focus ring, never default browser outline.
+   Outline follows border-radius (and corner-shape) natively in modern
+   browsers, so no radius declaration is needed here. */
+:focus-visible {
+  outline: 2px solid var(--beacon);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--beacon-faint);
+}
+
+/* §22.5 — reduced motion from day one. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Top bar surface (v2: solid surface-1 + bottom hairline, no glass) - */
+
+/* v3: elevation replaces the cardinal border — the surface steps off
+   the floor with a shadow, not an edge. (Aliases still resolve.) */
+.surface-card {
+  background: var(--surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---- Buttons -------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 510;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-signal),
+    border-color var(--duration-fast) var(--ease-signal),
+    transform var(--duration-fast) var(--ease-signal);
+  text-decoration: none;
+}
+
+/* Pressed/disabled handled by the Phase B interaction block below. */
+.btn:active {
+  transform: scale(var(--scale-press));
+}
+
+/* Primary — full-contrast surface; the label carries 590 weight (§1.2). */
+.btn-primary {
+  background: var(--beacon);
+  color: var(--on-beacon);
+  font-weight: 590;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--beacon-strong);
+}
+
+.btn-ghost {
+  border-color: var(--border-default);
+  background: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* ---- Phase B — interaction language (v3 brief §interaction) ---------
+   One press, one disabled, one hover behavior shared by every
+   interactive element — no per-component variants. --------------- */
+
+/* Pressed scale-down — tactile, uniform, never nudges layout. */
+:where(.btn, .icon-btn, .chip, .quick-action, .nav-item, .tab, .palette-row, .th-btn, .user-trigger, .fact-action, .merge-picker-row, .note-tool, [role="menuitem"]):active:not(:disabled) {
+  transform: scale(var(--scale-press));
+}
+
+/* Disabled — a contrast FLOOR via the -disabled token, not compounding
+   opacity. Chrome (borders/icons/bg) dims once at 0.6; text-bearing
+   controls swap to the theme's -disabled token so the floor is
+   deterministic in both modes. Never combine opacity + token. */
+:where(.btn, .icon-btn, .chip, .quick-action, .tab, .nav-item, .palette-row, .th-btn, .note-tool, .merge-picker-row):disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn:disabled {
+  color: var(--text-disabled);
+  border-color: var(--border-subtle);
+  background: transparent;
+}
+
+.btn-primary:disabled {
+  background: var(--surface-3);
+}
+
+.btn-danger:disabled,
+.btn-danger-ghost:disabled {
+  color: var(--text-disabled);
+  border-color: var(--border-subtle);
+}
+
+.input:disabled,
+.textarea:disabled,
+select:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+/* Card hover — tone-shift + ±1.01 scale, CARDS ONLY. Buttons and rows
+   tone-shift their background but never scale (they're already pressed
+   targets; scaling them reads as jitter). Applied via .card-hover on
+   interactive card containers. */
+@media (hover: hover) and (pointer: fine) {
+  .card-hover {
+    transition: background var(--duration-fast) var(--ease-signal),
+      transform var(--duration-fast) var(--ease-signal);
+    will-change: transform;
+  }
+
+  .card-hover:hover {
+    background: var(--surface-3);
+    transform: scale(1.01);
+  }
+
+  .card-hover:active {
+    transform: scale(1);
+  }
+}
+
+/* ---- §22.13 Loading hierarchy -------------------------------- */
+/* Tier 2: inline spinner, small, beacon-colored, inside the button. */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+  flex: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tier 1: skeleton pulse for data-shaped surfaces. */
+.skeleton {
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Staggered skeletons (Phase B) — a stack of skeletons fades up one
+   step at a time using the stagger scale. Transform-only entrance so
+   it composes with the opacity pulse without a property conflict. */
+.skeleton-stagger {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-stagger > .skeleton {
+  animation: skeleton-rise var(--duration-moderate) var(--ease-signal) backwards,
+    pulse 1.6s ease-in-out infinite;
+  animation-delay: var(--stagger-delay, 0ms), 0ms;
+}
+
+.skeleton-stagger > .skeleton:nth-child(2) {
+  --stagger-delay: var(--stagger-sm);
+}
+.skeleton-stagger > .skeleton:nth-child(3) {
+  --stagger-delay: var(--stagger-md);
+}
+.skeleton-stagger > .skeleton:nth-child(n + 4) {
+  --stagger-delay: var(--stagger-lg);
+}
+
+@keyframes skeleton-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Every existing multi-skeleton container is a stagger by default. */
+.table-skeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.table-skeleton > .skeleton {
+  animation: skeleton-rise var(--duration-moderate) var(--ease-signal) backwards,
+    pulse 1.6s ease-in-out infinite;
+  animation-delay: var(--stagger-delay, 0ms), 0ms;
+}
+
+.table-skeleton > .skeleton:nth-child(2) {
+  --stagger-delay: var(--stagger-sm);
+}
+.table-skeleton > .skeleton:nth-child(3) {
+  --stagger-delay: var(--stagger-md);
+}
+.table-skeleton > .skeleton:nth-child(n + 4) {
+  --stagger-delay: var(--stagger-lg);
+}
+
+/* Tier 3: full-page custom SVG loader — the app's own mark. */
+.loader-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100vh;
+  background: var(--canvas);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* §7 — the signal-bar mark as the loading mark, with a quiet pulse. */
+.loader-mark {
+  width: 44px;
+  height: 44px;
+}
+
+.loader-pulse {
+  animation: loader-pulse 1.6s var(--ease-signal) infinite;
+}
+
+@keyframes loader-pulse {
+  0% { opacity: 1; }
+  45% { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+
+/* ---- §22.6 The Beacon ---------------------------------------- */
+/* One glowing ring motif for anything needing action. Same shape, color,
+   animation everywhere — never varied. */
+.beacon-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--beacon);
+  box-shadow: 0 0 0 0 var(--beacon-faint);
+  animation: beacon-pulse 2.4s var(--ease-sheet) infinite;
+  flex: none;
+}
+
+@keyframes beacon-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(30, 30, 30, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(30, 30, 30, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(30, 30, 30, 0);
+  }
+}
+
+:root[data-theme="light"] .beacon-dot {
+  box-shadow: 0 0 0 0 rgba(26, 27, 29, 0.25);
+}
+
+:root[data-theme="light"] .beacon-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid rgba(26, 27, 29, 0.35);
+  animation: beacon-ring 2.4s var(--ease-sheet) infinite;
+}
+
+@keyframes beacon-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* ---- §2.3 Empty vs error states ------------------------------- */
+/* An empty state is a real composition: icon tile, 510-weight headline,
+   tertiary body, a clear action — the absence of data still looks designed. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 72px 24px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.empty-tile {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 510;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.empty-action {
+  margin-top: 16px;
+}
+
+/* ---- §22.11 Forms -------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 510;
+  color: var(--text-secondary);
+}
+
+/* Required fields marked with a subtle dot, not a red asterisk (§22.11). */
+.field label.required::after {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--beacon);
+  vertical-align: middle;
+}
+
+.input {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: 15px;
+  transition: border-color var(--duration-fast) var(--ease-signal),
+    box-shadow var(--duration-fast) var(--ease-signal);
+}
+
+/* §4.1 — focus: strong border + a subtle primary-tint ring, no colored ring. */
+.input:focus {
+  outline: none;
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px var(--beacon-faint);
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input:disabled {
+  opacity: 0.5;
+}
+
+/* Error — weight + border strength, never hue (§4.1). */
+.field-error .input {
+  border-color: var(--status-critical);
+  border-width: 1.5px;
+}
+
+.field-error-message {
+  font-size: 12px;
+  font-weight: 510;
+  color: var(--status-critical);
+}
+
+/* ---- §22.11 status colors ------------------------------------ */
+/* §1.1 status — the monochrome intensity register is the LOAD-BEARING
+   signal (text tone + weight), and a dot register carries the shape:
+   FILLED dot = resolved/attention-worthy, OUTLINE dot = in-flight,
+   DIMMED dot = terminal/off. Hue reinforces the dot ONLY (all hues pass
+   3:1 on every resting surface per the Phase D AA pairing); text never
+   takes hue — it stays on the 4.5:1 monochrome intensity register. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 510;
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid currentColor;
+}
+
+.status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  border: 1.5px solid var(--status-warning);
+  background: transparent;
+  transition: background var(--duration-instant) var(--ease-signal),
+    border-color var(--duration-instant) var(--ease-signal);
+}
+
+/* resolved / connected — filled dot, sage reinforcement */
+.status-paid::before,
+.status-active::before {
+  background: var(--status-positive-hue);
+  border-color: var(--status-positive-hue);
+}
+
+/* attention — filled dot, rust reinforcement + the strongest register.
+   The 590 weight + brightest tone carry it; the dot matches. */
+.status-overdue::before {
+  background: var(--status-critical-hue);
+  border-color: var(--status-critical-hue);
+}
+
+/* in-flight / pending — outlined dot, gold reinforcement */
+.status-draft::before,
+.status-sent::before,
+.status-viewed::before,
+.status-partially_paid::before,
+.status-lead::before,
+.status-pending::before {
+  border-color: var(--status-warning-hue);
+}
+
+/* terminal / off — dimmed outline, stone reinforcement */
+.status-void::before,
+.status-refunded::before,
+.status-closed::before,
+.status-muted::before {
+  border-color: var(--status-inert-hue);
+  opacity: 0.6;
+}
+
+.status-paid {
+  color: var(--status-positive);
+}
+
+.status-overdue {
+  color: var(--status-critical);
+  font-weight: 590;
+}
+
+.status-pending {
+  color: var(--status-warning);
+}
+
+.status-void {
+  color: var(--status-inert);
+}
+
+/* in-flight family: mid-tone, stays below 590 so overdue is unmistakable */
+.status-draft,
+.status-sent,
+.status-viewed,
+.status-partially_paid,
+.status-lead {
+  color: var(--status-warning);
+}
+
+/* active contact — resolved family */
+.status-active {
+  color: var(--status-positive);
+}
+
+/* terminal family: dimmest text tone */
+.status-refunded,
+.status-closed,
+.status-muted {
+  color: var(--status-inert);
+}
+
+/* ---- Sign-in page --------------------------------------------- */
+.signin {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--canvas);
+}
+
+.signin-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 32px;
+}
+
+.signin-card h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.signin-card .sub {
+  margin: 0 0 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.signin .btn {
+  width: 100%;
+}
+
+.signin .divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.signin .divider::before,
+.signin .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+
+.signin .switch-mode {
+  display: block;
+  margin: 16px auto 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-control);
+}
+
+.signin .switch-mode:hover {
+  color: var(--text-primary);
+  background: var(--beacon-faint);
+}
+
+.signin .muted-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ---- Shell (§22.7 reference layout) --------------------------- */
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 12px;
+  /* v3: flat surface-1 + L1 elevation — the shell never uses glass.
+     The right edge is a shadow, not a hairline (elevation replaces
+     borders; hairlines remain only as dividers inside the surface). */
+  background: var(--surface-1);
+  box-shadow: var(--elev-1-right);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 20px;
+  font-weight: 510;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+/* §7 — signal-bar mark: the same drawing as the favicon, sized for the rail. */
+.brand-mark {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: block;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Nav entrance — the rail staggers in 40ms apart (v3 motion). Runs once
+   on mount; reduced-motion global kills it. `backwards` fill holds the
+   from-frame only during each item's delay, then releases so hover/press
+   transforms are never blocked by a finished animation. */
+.nav-section .nav-item,
+.sidebar-footer .nav-item {
+  animation: nav-in var(--duration-moderate) var(--ease-signal) backwards;
+}
+
+.nav-section .nav-item:nth-child(1) {
+  animation-delay: 0ms;
+}
+.nav-section .nav-item:nth-child(2) {
+  animation-delay: var(--stagger-sm);
+}
+.nav-section .nav-item:nth-child(3) {
+  animation-delay: var(--stagger-md);
+}
+.nav-section .nav-item:nth-child(n + 4) {
+  animation-delay: var(--stagger-lg);
+}
+
+@keyframes nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal),
+    transform var(--duration-instant) var(--ease-signal);
+}
+
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* Active — tone-shift + a 2px inset highlight. No border, no pill edge:
+   the surface step carries the state (v3). */
+.nav-item[aria-current="page"] {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-weight: 510;
+  box-shadow: inset 2px 0 0 var(--beacon);
+}
+
+/* Mobile tab bar — the inset highlight points UP (it's a bottom bar). */
+@media (max-width: 1024px) {
+  .tabbar .nav-item[aria-current="page"] {
+    box-shadow: inset 0 -2px 0 var(--beacon);
+  }
+}
+
+/* §2.7 — count badge on attention surfaces (Inbox, Follow-ups). */
+.nav-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  min-width: 18px;
+  text-align: center;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.sidebar .spacer {
+  flex: 1;
+}
+
+.sidebar .sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* --- Nav sections --- */
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.nav-section-label {
+  padding: 0 12px 4px;
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* --- Quick create (brand-row "+") --- */
+.brand {
+  position: relative;
+}
+
+.quick-create {
+  margin-left: auto;
+  position: relative;
+}
+
+.quick-add {
+  width: 30px;
+  height: 30px;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+.quick-add:hover {
+  color: var(--text-primary);
+}
+
+.quick-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 180px;
+  padding: 6px;
+  /* L2 glass SHELL — items rest on the solid .quick-menu-inner card. */
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-popover);
+  display: flex;
+  flex-direction: column;
+}
+
+.quick-menu-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-4);
+}
+
+.quick-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 510;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-item:hover {
+  background: var(--surface-4);
+}
+
+/* --- Sidebar status block (connection + counts) --- */
+.sidebar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 8px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex: none;
+}
+
+.conn-dot.offline {
+  background: var(--text-primary);
+  animation: conn-pulse 1.6s var(--ease-signal) infinite;
+}
+
+@keyframes conn-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.conn-text {
+  font-weight: 510;
+  color: var(--text-secondary);
+}
+
+.status-chip {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.status-chip:first-of-type {
+  margin-left: 0;
+}
+
+/* --- User menu (avatar + profile popover) --- */
+.user-menu {
+  position: relative;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-signal);
+}
+
+.user-trigger:hover,
+.user-trigger[aria-expanded="true"] {
+  background: var(--surface-2);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 590;
+  color: var(--text-primary);
+  flex: none;
+}
+
+.avatar-lg {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.user-trigger-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 510;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  width: 300px;
+  padding: 8px;
+  /* L2 glass SHELL — content rests on the solid .user-pop-inner card. */
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-popover);
+  animation: pop-in var(--duration-fast) var(--ease-signal);
+}
+
+/* the solid card that carries every label inside the popover shell */
+.user-pop-inner {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-4);
+}
+
+.user-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-pop-id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-pop-facts {
+  margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-fact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-fact dt {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.user-fact dd {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fact-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fact-action:hover {
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.user-pop-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.user-pop-actions .btn {
+  flex: 1;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Keyboard focus visibility — consistent across interactive elements.
+   Same 2px beacon ring as the global rule; scoped so it applies to
+   every control. :where() keeps specificity at zero so component
+   styles still win where they need to. */
+:where(button, a, input, select, textarea, [role="button"], [role="option"], [tabindex]):focus-visible {
+  outline: 2px solid var(--beacon);
+  outline-offset: 2px;
+}
+
+/* ---- Top status bar — flat surface-1, L1 elevation (never glass) ---- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface-1);
+  box-shadow: var(--elev-1);
+}
+
+.topbar .title {
+  font-size: 18px;
+  font-weight: 510;
+  letter-spacing: var(--tracking-tight);
+}
+
+.topbar-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Back link: desktop has the sidebar, so it only appears on detail pages
+   below the sidebar breakpoint. */
+.back-link {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .back-link {
+    display: inline-flex;
+  }
+}
+
+/* Route pages fade in — a quiet entrance instead of a hard swap. */
+.main > * {
+  animation: page-in var(--duration-fast) var(--ease-signal);
+}
+
+@keyframes page-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* §2.7 — overdue chip: mono numerals + critical weight, never hue. */
+.overdue-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 510;
+  color: var(--status-critical);
+  padding: 5px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+}
+
+.overdue-chip::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-critical-hue);
+  flex: none;
+}
+
+.topbar .actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* §2.5 — kbd badges: surface-3 chip next to a control that has a shortcut. */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.btn .kbd {
+  margin-left: 8px;
+}
+
+/* §2.4 — the command palette trigger in the topbar: icon + hint chip. */
+.palette-trigger {
+  width: auto;
+  gap: 6px;
+  padding: 0 10px;
+  border-color: var(--border-default);
+}
+
+/* ---- §2.4 Command palette ------------------------------------- */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+  background: rgba(0, 0, 0, 0.55);
+  animation: fade-in var(--duration-fast) var(--ease-signal);
+}
+
+.command-palette {
+  /* L2 glass SHELL — frosted rim only; the input/list/footer rest on the
+     solid .palette-panel card inside (§1.4 hard rule). */
+  width: 560px;
+  max-width: 100%;
+  max-height: min(560px, 70vh);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+  overflow: hidden;
+  animation: pop-in var(--duration-fast) var(--ease-signal);
+}
+
+/* the solid content card inside the palette glass shell */
+.palette-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  background: var(--surface-4);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.palette-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.palette-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.palette-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.palette-list {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.palette-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.palette-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-row.active {
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  padding: 7px 9px;
+}
+
+.palette-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 590;
+  color: var(--text-secondary);
+}
+
+.palette-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.palette-row-label {
+  font-size: 14px;
+  font-weight: 510;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-row-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-row-icon {
+  color: var(--text-tertiary);
+  opacity: 0;
+}
+
+.palette-row.active .palette-row-icon {
+  opacity: 1;
+}
+
+.palette-empty {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.palette-footer {
+  display: flex;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-subtle);
+  background: transparent;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.palette-footer .kbd {
+  min-height: 15px;
+  font-size: 10px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* §7 — sign-in screen carries the same mark as the favicon. */
+.signin-mark {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 14px;
+}
+
+/* Deadline countdown chip — overdue is weight + a filled dot, never hue. */
+.deadline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  font-weight: 510;
+  color: var(--text-secondary);
+}
+
+.deadline-chip .cal-dot {
+  background: var(--text-tertiary);
+}
+
+.deadline-chip.overdue {
+  color: var(--text-primary);
+  font-weight: 590;
+  border-color: var(--border-strong);
+}
+
+.deadline-chip.overdue .cal-dot {
+  background: var(--status-critical-hue);
+}
+
+/* Invoice due-date hint — the overdue state leans on weight, not hue. */
+.due-hint {
+  color: var(--text-secondary);
+}
+
+.due-hint.overdue {
+  color: var(--text-primary);
+  font-weight: 590;
+}
+
+/* === Calendar (§22.7) — month view === */
+
+.calendar-page {
+  max-width: 980px;
+}
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cal-title h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 510;
+  letter-spacing: var(--tracking-tight);
+}
+
+.cal-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cal-overdue-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-strong);
+  font-weight: 590;
+  color: var(--text-primary);
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cal-dow span {
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 104px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.cal-cell.out {
+  opacity: 0.45;
+}
+
+.cal-cell.today {
+  border-color: var(--border-strong);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.cal-daynum {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cal-cell.today .cal-daynum {
+  color: var(--text-primary);
+  font-weight: 590;
+}
+
+.cal-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.cal-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  transition: background var(--duration-instant) var(--ease-signal),
+    color var(--duration-instant) var(--ease-signal);
+}
+
+.cal-chip:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.cal-chip .cal-chip-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-chip svg {
+  flex: none;
+}
+
+/* §1.6 — overdue is weight + a filled dot, never hue alone. The dot's
+   rust reinforcement is 3:1-safe on every resting surface (Phase D). */
+.cal-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.cal-chip.overdue {
+  color: var(--text-primary);
+  font-weight: 590;
+  border-color: var(--border-strong);
+}
+
+.cal-chip.overdue .cal-dot {
+  background: var(--status-critical-hue);
+}
+
+.cal-chip.partial {
+  color: var(--text-secondary);
+  font-weight: 510;
+}
+
+.cal-chip.partial .cal-dot {
+  background: transparent;
+  border: 1px solid var(--status-warning-hue);
+}
+
+.cal-more {
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ---- Main content --------------------------------------------- */
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: 32px 24px 64px;
+}
+
+/* ---- Toasts (§22.12) ------------------------------------------- */
+.toast-region {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+}
+
+/* Above the mobile tab bar, never under it. */
+@media (max-width: 1024px) {
+  .toast-region {
+    bottom: 76px;
+    right: 12px;
+    left: 12px;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-4);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-popover);
+  font-size: 14px;
+  animation: toast-in var(--duration-standard) var(--ease-signal);
+}
+
+.toast-icon {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.toast-error .toast-icon {
+  color: var(--status-critical);
+}
+
+.toast .undo {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  border-radius: var(--radius-control);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 590;
+  cursor: pointer;
+}
+
+.toast .undo:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Responsive (§22.10) --------------------------------------- */
+/* Below 1024px the sidebar collapses to a bottom tab bar. */
+@media (max-width: 1024px) {
+  .sidebar {
+    display: none;
+  }
+
+  .content {
+    padding-bottom: 64px;
+  }
+
+  .tabbar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    /* v3: flat surface-1 + upward L1 elevation (elevation replaces the
+       border); never glass. */
+    background: var(--surface-1);
+    box-shadow: var(--elev-1-up);
+  }
+
+  .tabbar .nav-item {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 44px;
+    padding: 6px 4px;
+    font-size: 11px;
+    justify-content: center;
+    position: relative;
+  }
+
+  .tabbar .nav-count {
+    position: absolute;
+    top: 5px;
+    right: calc(50% - 22px);
+    margin: 0;
+    padding: 2px 4px;
+    min-width: 14px;
+    font-size: 10px;
+  }
+
+  /* §23.8 — every interactive control meets the 44px floor on touch. */
+  .btn,
+  .icon-btn {
+    min-height: 44px;
+  }
+
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .tabbar {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Phase 1 — CRM loop styles (§13/§14/§22.4–22.15 patterns)
+   ============================================================ */
+
+/* ---- Phase D — list density (§2.1/§2.7, v2) -------------------
+   Rich rows: initials avatar, tag chips, health dots, count labels,
+   hover-revealed quick actions. All monochrome. ----------------- */
+.avatar {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 590;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.row-count {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* Hover-revealed quick actions — §2.6: the interface holds more than it
+   shows at rest; revealed progressively on hover/focus, never at rest. */
+.quick-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-signal);
+}
+
+.data-table tr:hover .quick-actions,
+.data-table tr:focus-within .quick-actions {
+  opacity: 1;
+}
+
+.quick-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--duration-instant) var(--ease-signal),
+    color var(--duration-instant) var(--ease-signal);
+}
+
+.quick-action:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.client-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.client-cell .client-name {
+  display: block;
+}
+
+.health-dot-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+/* ---- §22.14 table ------------------------------------------ */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+  color: var(--text-secondary);
+}
+
+.search-box > svg {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+}
+
+.search-input {
+  width: 100%;
+  padding-left: 36px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 510;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
+}
+
+.chip:hover {
+  background: var(--beacon-faint);
+}
+
+.chip-active {
+  background: var(--beacon);
+  border-color: var(--beacon);
+  color: var(--on-beacon);
+}
+
+.table-wrap {
+  border-radius: var(--radius-md);
+  overflow-x: auto; /* §23.8 — never clip columns; scroll instead */
+  -webkit-overflow-scrolling: touch;
+  background: var(--surface-2);
+  /* v3 — elevation replaces the container's cardinal edge. */
+  box-shadow: var(--elev-1);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 510;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+
+.th-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.th-btn:hover {
+  color: var(--text-primary);
+}
+
+.sort-arrow {
+  font-size: 9px;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Row entrance — a 40/60/80ms stagger up the sibling scale, opacity-only
+   so it can't fight the hover tone-shift. `backwards` releases the from
+   frame as soon as each row's delay lapses. */
+.data-table tbody tr {
+  animation: row-in var(--duration-fast) var(--ease-signal) backwards;
+}
+.data-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.data-table tbody tr:nth-child(2) { animation-delay: var(--stagger-sm); }
+.data-table tbody tr:nth-child(3) { animation-delay: var(--stagger-md); }
+.data-table tbody tr:nth-child(n + 4) { animation-delay: var(--stagger-lg); }
+
+@keyframes row-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-3);
+}
+
+.client-name {
+  font-weight: 510;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.client-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cell-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* §2.6 — a deadline landing within 7 days: imminent but NOT overdue.
+   Warning register (510 + mid tone), never the critical 590/bright tone
+   that's reserved for genuinely overdue states. */
+.deadline-near {
+  color: var(--status-warning);
+  font-weight: 510;
+}
+
+/* Card-list entrance — sibling cards rise through the stagger scale on
+   mount (40/60/80ms), transform-only so it composes with the press scale.
+   `backwards` releases each card's from-frame when its delay lapses, so
+   hover/press transforms are never blocked by a finished animation. */
+.nudge-list > *,
+.inbox-list > *,
+.project-grid > * {
+  animation: card-rise var(--duration-moderate) var(--ease-signal) backwards;
+}
+.nudge-list > *:nth-child(2),
+.inbox-list > *:nth-child(2),
+.project-grid > *:nth-child(2) {
+  animation-delay: var(--stagger-sm);
+}
+.nudge-list > *:nth-child(3),
+.inbox-list > *:nth-child(3),
+.project-grid > *:nth-child(3) {
+  animation-delay: var(--stagger-md);
+}
+.nudge-list > *:nth-child(n + 4),
+.inbox-list > *:nth-child(n + 4),
+.project-grid > *:nth-child(n + 4) {
+  animation-delay: var(--stagger-lg);
+}
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.table-skeleton {
+  padding: 4px 0;
+}
+
+/* ---- §22.14 tabs ------------------------------------------- */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 510;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--beacon);
+}
+
+/* ---- detail page (§14) -------------------------------------- */
+.detail-head {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-title-row h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.detail-company {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px 24px;
+  margin: 20px 0;
+}
+
+.meta-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 510;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.meta-value {
+  font-size: 14px;
+}
+
+.primary-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 510;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0 6px;
+  vertical-align: 1px;
+}
+
+.health-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* §2.2 — 5-dot recency visual; contrast (filled vs dim) carries the signal. */
+.health-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.health-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+}
+
+.health-dot.filled {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+/* §2.2 — stats strip: mono numerals at 300 weight, hairline-divided. */
+.stats-strip {
+  display: flex;
+  gap: 0;
+  margin: 20px 0 24px;
+  /* v3 — elevation carries the strip; the hairline cell separators stay
+     as inner dividers (separator, not edge). */
+  box-shadow: var(--elev-1);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+
+/* Asymmetric grouping — the leading stat (total billed) earns more width;
+   the supporting stats stay tight. Two tiers, never four equals. */
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  min-width: 0;
+}
+
+.stat:first-child {
+  flex: 1.6;
+}
+
+.stat + .stat {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.stat:first-child .stat-value {
+  font-size: 26px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* §2.7 — counts on tab labels. */
+.tab-count {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* §23.1 destructive — monochrome critical treatment: weight + border, no hue. */
+.btn-danger {
+  background: var(--surface-2);
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+  font-weight: 590;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
+.btn-danger-ghost {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
+.btn-danger-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.detail-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+}
+
+.detail-section h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+/* ---- forms inside modals ------------------------------------ */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.confirm-body {
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.textarea {
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.contact-list-fieldset,
+.merge-conflicts {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  margin: 0 0 16px;
+}
+
+.contact-list-fieldset legend,
+.merge-conflicts legend {
+  font-size: 12px;
+  font-weight: 510;
+  color: var(--text-secondary);
+  padding: 0 6px;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.list-row .input {
+  flex: 1;
+}
+
+.primary-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.conflict-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conflict-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.conflict-option:has(input:checked) {
+  border-color: var(--beacon);
+  background: var(--beacon-faint);
+}
+
+/* ---- §1.4 modals — surface-4 + hairline edge + soft black shadow ----- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 90;
+}
+
+.modal {
+  /* L3 glass SHELL — the frosted rim is atmospheric; all text rests on
+     the solid .modal-inner card inside (§1.4 hard rule: text never sits
+     directly on a blurred surface). */
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  width: 100%;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  animation: modal-in var(--duration-panel) var(--ease-signal);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-inner {
+  /* the solid content card inside the glass shell — every label sits here. */
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+  background: var(--surface-4);
+  border-radius: var(--radius-md);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+/* ---- timeline (§14, §22.7) ---------------------------------- */
+.timeline {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.timeline-glyph {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.timeline-label {
+  font-weight: 510;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.timeline-head time {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.timeline-note-body {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.timeline-note-body p:first-child {
+  margin-top: 0;
+}
+
+/* ---- §18 notes / TipTap -------------------------------------- */
+.note-composer {
+  padding: 14px;
+  max-width: 760px;
+}
+
+.note-toolbar {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.note-tool {
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.note-tool:hover {
+  background: var(--beacon-faint);
+}
+
+.note-tool.active {
+  background: var(--beacon);
+  color: var(--on-beacon);
+}
+
+.note-editor {
+  min-height: 90px;
+  outline: none;
+  color: var(--text-primary);
+}
+
+.note-editor p {
+  margin: 0 0 8px;
+}
+
+.note-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* ---- projects ------------------------------------------------ */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.project-card {
+  padding: 18px;
+}
+
+.project-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-card-head h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.project-desc {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.project-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.project-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ---- custom fields ------------------------------------------- */
+.custom-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0 16px;
+  max-width: 760px;
+}
+
+.definition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+}
+
+.definition-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.merge-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.merge-picker-row {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.merge-picker-row:hover {
+  background: var(--beacon-faint);
+}
+
+.muted {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.toast-close {
+  width: 24px;
+  height: 24px;
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  /* Calendar — chips collapse to status dots below mobile width. */
+  .cal-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .cal-cell {
+    min-height: 64px;
+    padding: 5px;
+  }
+
+  .cal-chip-title,
+  .cal-chip svg {
+    display: none;
+  }
+
+  .cal-chip {
+    padding: 3px;
+    justify-content: center;
+  }
+
+  .cal-dow span {
+    padding: 0 2px;
+    text-align: center;
+  }
+
+  .stats-strip {
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    flex: 1 1 50%;
+  }
+
+  .stat:first-child {
+    flex: 1 1 100%;
+  }
+
+  .stat:first-child .stat-value {
+    font-size: 24px;
+  }
+
+  .stat:nth-child(3) {
+    border-left: none;
+  }
+
+  .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--border-subtle);
+  }
+}
+
+/* === Phase 2 — GitHub integration (§9a/§20.3/§22.15) === */
+
+.integration-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.integration-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.integration-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+.integration-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.integration-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repo-picker,
+.repo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.repo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.repo-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.repo-row.disconnected {
+  border-color: var(--danger);
+}
+.already-linked {
+  color: var(--beacon);
+  font-size: 12px;
+}
+.repo-disconnected {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.activity-glyph {
+  font-size: 18px;
+  color: var(--text-2);
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+.activity-main {
+  min-width: 0;
+  flex: 1;
+}
+.activity-main a {
+  color: var(--text-1);
+  font-weight: 600;
+  text-decoration: none;
+}
+.activity-main a:hover {
+  text-decoration: underline;
+}
+.status-muted {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+/* === Phase 3 — Invoicing (§15/§22.18) === */
+
+.item-desc {
+  flex: 1;
+  min-width: 0;
+}
+.invoice-total {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: 8px 0 16px;
+  background: var(--surface-1);
+}
+
+/* §22.18 print-only preview: white bg, black text, no glass, no dark mode. */
+.pdf-preview {
+  background: #ffffff;
+  color: #000000;
+  padding: 32px;
+  border-radius: var(--radius-sm);
+  max-height: 70vh;
+  overflow: auto;
+}
+.print-doc {
+  font-family: "Inter", -apple-system, sans-serif;
+  font-size: 13px;
+  color: #000;
+}
+.print-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #000;
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+.print-head h1 { font-size: 20px; }
+.print-no { font-weight: 600; }
+.print-from strong, .print-to strong {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+.print-to { margin-bottom: 18px; }
+.print-table { width: 100%; border-collapse: collapse; }
+.print-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #000;
+  padding: 6px 0;
+}
+.print-table td {
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+.print-table td.num { text-align: right; font-family: "Geist Mono", ui-monospace, monospace; }
+.print-total td { font-weight: 700; border-bottom: none; }
+.print-doc .muted { color: #555; }
+
+/* Phase 4 — Gmail setup + reply box */
+.gmail-setup { padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+.copy-block { display: flex; flex-direction: column; gap: 6px; }
+.copy-row { display: flex; align-items: center; gap: 8px; }
+.copy-text { flex: 1; font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; }
+.gmail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.field-note { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.reply-box { padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+.reply-input { width: 100%; resize: vertical; font-family: var(--mono); font-size: 13px; }
+.status-pending { color: var(--amber, #b45309); border-color: var(--amber, #d97706); }
+.integration-sub { border-top: 1px solid var(--border); padding-top: 12px; }
+.row-label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-2); }
+
+/* Phase 5 — follow-ups, inbox, security */
+.nudge-list { display: flex; flex-direction: column; gap: 10px; }
+.nudge-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; }
+.nudge-beacon { padding-top: 2px; }
+.nudge-body { flex: 1; }
+.nudge-actions { display: flex; gap: 8px; }
+.inbox-list { display: flex; flex-direction: column; gap: 10px; }
+.inbox-row { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.inbox-head { display: flex; justify-content: space-between; align-items: center; }
+.inbox-body { margin: 0; color: var(--text-2); }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border); color: var(--text-2); }
+.badge-spam { color: var(--danger, #b91c1c); border-color: var(--danger, #dc2626); }
+.badge-important { color: var(--success, #15803d); border-color: var(--success, #16a34a); }
+.session-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.portal-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.portal-page .definition-row { display: flex; justify-content: space-between; align-items: center; }
