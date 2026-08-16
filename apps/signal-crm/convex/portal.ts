@@ -133,6 +133,9 @@ export const data = query({
         total: i.total,
         amountPaid: i.amountPaid,
         dueAt: i.dueAt,
+        // §22.2 — the client's amounts render in the invoice's own currency;
+        // the portal never assumes USD.
+        currency: i.currency,
       })),
     };
   },

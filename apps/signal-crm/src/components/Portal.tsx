@@ -6,7 +6,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { EmptyState } from "./EmptyState";
 import { useToasts } from "./ui/useToasts";
-import { setActiveTimezone } from "../lib/format";
+import { formatMoney, setActiveTimezone } from "../lib/format";
 
 /**
  * §20.7 client portal — passwordless. The URL carries a 15-minute, single-use
@@ -136,8 +136,8 @@ export function Portal() {
                   <div className="muted">{inv.status}</div>
                 </div>
                 <div>
-                  {new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(Number(inv.total) / 100)}
-                  <div className="muted">{Number(inv.amountPaid) > 0 ? `${new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(Number(inv.amountPaid) / 100)} paid` : "unpaid"}</div>
+                  {formatMoney(inv.total, inv.currency)}
+                  <div className="muted">{Number(inv.amountPaid) > 0 ? `${formatMoney(inv.amountPaid, inv.currency)} paid` : "unpaid"}</div>
                 </div>
               </li>
             ))}
