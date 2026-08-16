@@ -320,7 +320,8 @@ button {
   box-shadow: var(--shadow-card);
 }
 
-/* ---- Buttons -------------------------------------------------- */
+/* ---- §3.0 Buttons — one register, one behavior per state ---------
+   Pressed/disabled handled by the Phase B interaction block below. */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -338,11 +339,6 @@ button {
     border-color var(--duration-fast) var(--ease-signal),
     transform var(--duration-fast) var(--ease-signal);
   text-decoration: none;
-}
-
-/* Pressed/disabled handled by the Phase B interaction block below. */
-.btn:active {
-  transform: scale(var(--scale-press));
 }
 
 /* Primary — full-contrast surface; the label carries 590 weight (§1.2). */
@@ -363,6 +359,84 @@ button {
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--surface-2);
+}
+
+/* §23.1 destructive — monochrome critical treatment: weight + border,
+   no hue. The critical tone sits on a quiet surface, never a colored fill. */
+.btn-danger {
+  background: var(--surface-2);
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+  font-weight: 590;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
+.btn-danger-ghost {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
+.btn-danger-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* Compact variant — 32px at rest; the 44px touch floor re-applies below
+   1024px via the appended §23.8 rule (last-in-source wins). */
+.btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Icon-only button — 40px at rest, 44px floor on touch (§5.8). */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* §2.5 — kbd badges: a quiet mono chip next to a control that has a
+   shortcut. Key-cap shadow via the border token, never a hardcoded tint. */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 0 var(--border-default);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.btn .kbd {
+  margin-left: 8px;
 }
 
 /* ---- Phase B — interaction language (v3 brief §interaction) ---------
@@ -428,7 +502,7 @@ select:disabled {
   }
 }
 
-/* ---- §22.13 Loading hierarchy -------------------------------- */
+/* ---- §3.3 Loading hierarchy — three tiers, not interchangeable ---- */
 /* Tier 2: inline spinner, small, beacon-colored, inside the button. */
 .spinner {
   width: 16px;
@@ -463,27 +537,32 @@ select:disabled {
   }
 }
 
-/* Staggered skeletons (Phase B) — a stack of skeletons fades up one
-   step at a time using the stagger scale. Transform-only entrance so
-   it composes with the opacity pulse without a property conflict. */
-.skeleton-stagger {
+/* Staggered skeleton stacks — the default for every multi-skeleton
+   container (tables, timelines, lists). Entrances rise through the
+   stagger scale; transform-only so it composes with the opacity pulse. */
+.skeleton-stagger,
+.table-skeleton {
   display: flex;
   flex-direction: column;
 }
 
-.skeleton-stagger > .skeleton {
+.skeleton-stagger > .skeleton,
+.table-skeleton > .skeleton {
   animation: skeleton-rise var(--duration-moderate) var(--ease-signal) backwards,
     pulse 1.6s ease-in-out infinite;
   animation-delay: var(--stagger-delay, 0ms), 0ms;
 }
 
-.skeleton-stagger > .skeleton:nth-child(2) {
+.skeleton-stagger > .skeleton:nth-child(2),
+.table-skeleton > .skeleton:nth-child(2) {
   --stagger-delay: var(--stagger-sm);
 }
-.skeleton-stagger > .skeleton:nth-child(3) {
+.skeleton-stagger > .skeleton:nth-child(3),
+.table-skeleton > .skeleton:nth-child(3) {
   --stagger-delay: var(--stagger-md);
 }
-.skeleton-stagger > .skeleton:nth-child(n + 4) {
+.skeleton-stagger > .skeleton:nth-child(n + 4),
+.table-skeleton > .skeleton:nth-child(n + 4) {
   --stagger-delay: var(--stagger-lg);
 }
 
@@ -498,29 +577,8 @@ select:disabled {
   }
 }
 
-/* Every existing multi-skeleton container is a stagger by default. */
-.table-skeleton {
-  display: flex;
-  flex-direction: column;
-}
-
-.table-skeleton > .skeleton {
-  animation: skeleton-rise var(--duration-moderate) var(--ease-signal) backwards,
-    pulse 1.6s ease-in-out infinite;
-  animation-delay: var(--stagger-delay, 0ms), 0ms;
-}
-
-.table-skeleton > .skeleton:nth-child(2) {
-  --stagger-delay: var(--stagger-sm);
-}
-.table-skeleton > .skeleton:nth-child(3) {
-  --stagger-delay: var(--stagger-md);
-}
-.table-skeleton > .skeleton:nth-child(n + 4) {
-  --stagger-delay: var(--stagger-lg);
-}
-
-/* Tier 3: full-page custom SVG loader — the app's own mark. */
+/* Tier 3: full-page loader — the app's own signal-bar mark with a quiet
+   pulse. Reserved for first-load/full-page moments only (§3.3). */
 .loader-page {
   display: flex;
   flex-direction: column;
@@ -533,7 +591,6 @@ select:disabled {
   font-size: 13px;
 }
 
-/* §7 — the signal-bar mark as the loading mark, with a quiet pulse. */
 .loader-mark {
   width: 44px;
   height: 44px;
@@ -549,59 +606,33 @@ select:disabled {
   100% { opacity: 1; }
 }
 
-/* ---- §22.6 The Beacon ---------------------------------------- */
-/* One glowing ring motif for anything needing action. Same shape, color,
-   animation everywhere — never varied. */
+/* ---- §1.7 The Beacon ---------------------------------------- */
+/* ONE pulsing monochrome dot for anything needing action. Same shape,
+   color, animation everywhere — never a variant. The retired "glass
+   glowing ring" rendering is gone; the pulse is opacity-only so it
+   needs no hardcoded hue and honors reduced motion. */
 .beacon-dot {
-  position: relative;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--beacon);
-  box-shadow: 0 0 0 0 var(--beacon-faint);
-  animation: beacon-pulse 2.4s var(--ease-sheet) infinite;
+  animation: beacon-pulse 2.4s var(--ease-signal) infinite;
   flex: none;
 }
 
 @keyframes beacon-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(30, 30, 30, 0.35);
+  0%, 100% {
+    opacity: 1;
   }
-  70% {
-    box-shadow: 0 0 0 8px rgba(30, 30, 30, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(30, 30, 30, 0);
+  50% {
+    opacity: 0.4;
   }
 }
 
-:root[data-theme="light"] .beacon-dot {
-  box-shadow: 0 0 0 0 rgba(26, 27, 29, 0.25);
-}
-
-:root[data-theme="light"] .beacon-dot::after {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  border: 1px solid rgba(26, 27, 29, 0.35);
-  animation: beacon-ring 2.4s var(--ease-sheet) infinite;
-}
-
-@keyframes beacon-ring {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-
-/* ---- §2.3 Empty vs error states ------------------------------- */
+/* ---- §3.5 Empty vs error states ------------------------------- */
 /* An empty state is a real composition: icon tile, 510-weight headline,
-   tertiary body, a clear action — the absence of data still looks designed. */
+   tertiary body, a clear action — the absence of data still reads as
+   designed. Distinct from error states (flat, quiet — never illustrated). */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -644,7 +675,7 @@ select:disabled {
   margin-top: 16px;
 }
 
-/* ---- §22.11 Forms -------------------------------------------- */
+/* ---- §3.1 Forms -------------------------------------------- */
 .field {
   display: flex;
   flex-direction: column;
@@ -659,7 +690,7 @@ select:disabled {
   color: var(--text-secondary);
 }
 
-/* Required fields marked with a subtle dot, not a red asterisk (§22.11). */
+/* Required fields marked with a subtle dot, not a red asterisk (§3.1). */
 .field label.required::after {
   content: "";
   display: inline-block;
@@ -671,6 +702,8 @@ select:disabled {
   vertical-align: middle;
 }
 
+/* States: default → focus (beacon ring) → error (rust border + inline
+   message BELOW the field, never a toast) → disabled (§3.1). */
 .input {
   min-height: 44px;
   padding: 0 12px;
@@ -683,7 +716,7 @@ select:disabled {
     box-shadow var(--duration-fast) var(--ease-signal);
 }
 
-/* §4.1 — focus: strong border + a subtle primary-tint ring, no colored ring. */
+/* §3.1 focus — strong border + a subtle beacon-tint ring, no colored ring. */
 .input:focus {
   outline: none;
   border-color: var(--border-strong);
@@ -698,7 +731,7 @@ select:disabled {
   opacity: 0.5;
 }
 
-/* Error — weight + border strength, never hue (§4.1). */
+/* Error — weight + border strength, never hue (§3.1). */
 .field-error .input {
   border-color: var(--status-critical);
   border-width: 1.5px;
@@ -710,13 +743,10 @@ select:disabled {
   color: var(--status-critical);
 }
 
-/* ---- §22.11 status colors ------------------------------------ */
-/* §1.1 status — the monochrome intensity register is the LOAD-BEARING
-   signal (text tone + weight), and a dot register carries the shape:
-   FILLED dot = resolved/attention-worthy, OUTLINE dot = in-flight,
-   DIMMED dot = terminal/off. Hue reinforces the dot ONLY (all hues pass
-   3:1 on every resting surface per the Phase D AA pairing); text never
-   takes hue — it stays on the 4.5:1 monochrome intensity register. */
+/* ---- §1.1 status — the monochrome intensity register ----------------
+   Text tone + weight are the load-bearing signal; a dot register carries
+   the shape (filled = resolved/attention, outline = in-flight, dimmed =
+   terminal). Hue reinforces the DOT only — text never takes hue. */
 .status {
   display: inline-flex;
   align-items: center;
@@ -734,7 +764,7 @@ select:disabled {
   height: 6px;
   border-radius: 50%;
   flex: none;
-  border: 1.5px solid var(--status-warning);
+  border: 1.5px solid var(--status-warning-hue);
   background: transparent;
   transition: background var(--duration-instant) var(--ease-signal),
     border-color var(--duration-instant) var(--ease-signal);
@@ -773,6 +803,7 @@ select:disabled {
   opacity: 0.6;
 }
 
+/* intensity register — the monochrome ramp, never hue */
 .status-paid {
   color: var(--status-positive);
 }
@@ -903,6 +934,17 @@ select:disabled {
   position: sticky;
   top: 0;
   height: 100vh;
+  /* Short viewports (landscape, small laptops): the rail's content
+     (brand + nav + status + footer) can exceed the viewport height. Without
+     this the footer is clipped with no way to scroll to it — the rail
+     becomes its own scroll container so Sign out stays reachable. */
+  overflow-y: auto;
+}
+
+.sidebar nav,
+.sidebar .sidebar-footer,
+.sidebar .sidebar-status {
+  flex: none;
 }
 
 .sidebar .brand {
@@ -933,6 +975,7 @@ select:disabled {
    on mount; reduced-motion global kills it. `backwards` fill holds the
    from-frame only during each item's delay, then releases so hover/press
    transforms are never blocked by a finished animation. */
+
 .nav-section .nav-item,
 .sidebar-footer .nav-item {
   animation: nav-in var(--duration-moderate) var(--ease-signal) backwards;
@@ -968,18 +1011,20 @@ select:disabled {
   gap: 10px;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-lg);
   border: none;
   background: transparent;
   color: var(--text-secondary);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
+  text-decoration: none;
   cursor: pointer;
   text-align: left;
   width: 100%;
   transition: background var(--duration-fast) var(--ease-signal),
     color var(--duration-fast) var(--ease-signal),
     transform var(--duration-instant) var(--ease-signal);
+
 }
 
 .nav-item:hover {
@@ -987,20 +1032,26 @@ select:disabled {
   color: var(--text-primary);
 }
 
-/* Active — tone-shift + a 2px inset highlight. No border, no pill edge:
-   the surface step carries the state (v3). */
+/* Active — tone-shift only: one surface STEP above hover + weight carry the
+   state, no border or inset highlight bar (v3). Hover sits on surface-2;
+   active steps to surface-3 so a hovered item never reads as the current
+   page, and the current page never reads as merely hoverable. */
 .nav-item[aria-current="page"] {
-  background: var(--surface-2);
+  background: var(--surface-3);
   color: var(--text-primary);
   font-weight: 510;
-  box-shadow: inset 2px 0 0 var(--beacon);
 }
 
-/* Mobile tab bar — the inset highlight points UP (it's a bottom bar). */
-@media (max-width: 1024px) {
-  .tabbar .nav-item[aria-current="page"] {
-    box-shadow: inset 0 -2px 0 var(--beacon);
-  }
+/* Hovering the current page still responds — one more gentle step up, so
+   the active rail item never feels dead under the cursor. */
+.nav-item[aria-current="page"]:hover {
+  background: var(--surface-4);
+}
+
+/* Count badge sits on the raised active step — bump it up too so it keeps
+   its contrast instead of merging into the active background. */
+.nav-item[aria-current="page"] .nav-count {
+  background: var(--surface-4);
 }
 
 /* §2.7 — count badge on attention surfaces (Inbox, Follow-ups). */
@@ -1194,27 +1245,6 @@ select:disabled {
 .user-trigger:hover,
 .user-trigger[aria-expanded="true"] {
   background: var(--surface-2);
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-xs);
-  background: var(--surface-3);
-  border: 1px solid var(--border-default);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 590;
-  color: var(--text-primary);
-  flex: none;
-}
-
-.avatar-lg {
-  width: 40px;
-  height: 40px;
-  font-size: 14px;
 }
 
 .user-trigger-text {
@@ -1426,51 +1456,7 @@ select:disabled {
   gap: 8px;
 }
 
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-control);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-signal),
-    color var(--duration-fast) var(--ease-signal);
-}
 
-.icon-btn:hover {
-  background: var(--surface-2);
-  color: var(--text-primary);
-}
-
-.icon-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* §2.5 — kbd badges: surface-3 chip next to a control that has a shortcut. */
-.kbd {
-  display: inline-flex;
-  align-items: center;
-  min-height: 18px;
-  padding: 0 5px;
-  border-radius: var(--radius-xs);
-  background: var(--surface-3);
-  border: 1px solid var(--border-default);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.btn .kbd {
-  margin-left: 8px;
-}
 
 /* §2.4 — the command palette trigger in the topbar: icon + hint chip. */
 .palette-trigger {
@@ -1879,6 +1865,74 @@ select:disabled {
   color: var(--text-tertiary);
 }
 
+/* Mobile-only legend — hidden on desktop where the chip titles render
+   the kind names inline (shown again in the ≤640px block). */
+.cal-legend {
+  display: none;
+}
+
+/* ---- client mini-calendar (detail page) --------------------- */
+.mini-cal {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.mini-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mini-cal-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.mini-cal-sub {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.mini-cal-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-cal .cal-grid {
+  gap: 4px;
+}
+
+.mini-cal .cal-cell {
+  min-height: 62px;
+  padding: 5px;
+  gap: 2px;
+  background: var(--surface-2);
+}
+
+.mini-cal .cal-chips {
+  gap: 2px;
+}
+
+.mini-cal .cal-chip {
+  padding: 1px 5px;
+}
+
+@media (max-width: 640px) {
+  .mini-cal .cal-cell {
+    min-height: 52px;
+  }
+  /* keep the widget's chip icons — the detail-page register is dense,
+     and the full-screen legend doesn't exist here to explain them */
+  .mini-cal .cal-chip-title {
+    display: inline;
+  }
+}
+
 /* ---- Main content --------------------------------------------- */
 .content {
   flex: 1;
@@ -1892,7 +1946,7 @@ select:disabled {
   padding: 32px 24px 64px;
 }
 
-/* ---- Toasts (§22.12) ------------------------------------------- */
+/* ---- §3.2 Toasts ---------------------------------------------- */
 .toast-region {
   position: fixed;
   bottom: 24px;
@@ -1912,6 +1966,8 @@ select:disabled {
   }
 }
 
+/* Toasts stay solid surface-4 (flagged deviation, §1.4 — a single line of
+   text has no inner card to carry). The icon shape carries the meaning. */
 .toast {
   display: flex;
   align-items: center;
@@ -1951,6 +2007,14 @@ select:disabled {
   color: var(--text-primary);
 }
 
+/* Close control — the compact 24px visual; the touch floor below is the
+   real tap target on mobile (§5.8). */
+.toast-close {
+  width: 24px;
+  height: 24px;
+  color: inherit;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -1986,7 +2050,17 @@ select:disabled {
     box-shadow: var(--elev-1-up);
   }
 
+  /* nav(true) wraps the Workspace items in a .nav-section (a SIDEBAR column
+     construct). In the tabbar that would stack them into a tall column and
+     squeeze the bar to ~240px — dissolve the wrapper so all 7 items become
+     direct flex children of the row, then split them evenly. */
+  .tabbar .nav-section {
+    display: contents;
+  }
+
   .tabbar .nav-item {
+    flex: 1 1 0%;
+    min-width: 0;
     flex-direction: column;
     gap: 2px;
     min-height: 44px;
@@ -2028,9 +2102,12 @@ select:disabled {
    Phase 1 — CRM loop styles (§13/§14/§22.4–22.15 patterns)
    ============================================================ */
 
-/* ---- Phase D — list density (§2.1/§2.7, v2) -------------------
+/* ---- Primitives — list density (§3.4, v3) ---------------------
    Rich rows: initials avatar, tag chips, health dots, count labels,
    hover-revealed quick actions. All monochrome. ----------------- */
+/* Single avatar primitive — used by the sidebar, lists, inbox, palette.
+   `display: inline-flex` keeps it aligned inside text rows; the lg
+   variant is the profile size. */
 .avatar {
   width: 28px;
   height: 28px;
@@ -2046,6 +2123,12 @@ select:disabled {
   font-weight: 590;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
+}
+
+.avatar-lg {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
 }
 
 .tag-chip {
@@ -2136,7 +2219,7 @@ select:disabled {
   font-size: 22px;
 }
 
-/* ---- §22.14 table ------------------------------------------ */
+/* ---- §3.4 list toolbars & tables ----------------------------- */
 .table-toolbar {
   display: flex;
   align-items: center;
@@ -2171,10 +2254,13 @@ select:disabled {
   gap: 6px;
 }
 
+/* Filter chips — §3.4: border --border-subtle, 510, press 0.97.
+   Radius is the squircle --radius-sm, never a pill — the corner scale
+   has no pill token (§1.5). */
 .chip {
   min-height: 36px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   background: transparent;
   color: var(--text-secondary);
@@ -2195,12 +2281,21 @@ select:disabled {
   color: var(--on-beacon);
 }
 
+/* Hover must never dim the selected state: `.chip:hover` (0,2,0) would
+   otherwise override `.chip-active` (0,1,0) and drop the solid beacon to
+   the faint tint — a selected chip that looks LESS selected under the
+   cursor. Keep the fill, lift brightness as the responsive cue instead. */
+.chip-active:hover {
+  background: var(--beacon);
+  filter: brightness(1.08);
+}
+
+/* The sheet itself is elevation, not an edge (§3.4) — L1 shadow, no border. */
 .table-wrap {
   border-radius: var(--radius-md);
   overflow-x: auto; /* §23.8 — never clip columns; scroll instead */
   -webkit-overflow-scrolling: touch;
   background: var(--surface-2);
-  /* v3 — elevation replaces the container's cardinal edge. */
   box-shadow: var(--elev-1);
 }
 
@@ -2513,35 +2608,9 @@ select:disabled {
 
 .detail-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
-}
-
-/* §23.1 destructive — monochrome critical treatment: weight + border, no hue. */
-.btn-danger {
-  background: var(--surface-2);
-  border-color: var(--status-critical);
-  color: var(--status-critical);
-  font-weight: 590;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: var(--surface-3);
-}
-
-.btn-danger-ghost {
-  border-color: var(--status-critical);
-  color: var(--status-critical);
-}
-
-.btn-danger-ghost:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.btn-sm {
-  min-height: 32px;
-  padding: 0 12px;
-  font-size: 13px;
 }
 
 .section-head {
@@ -2566,6 +2635,82 @@ select:disabled {
 .detail-section h3 {
   font-size: 16px;
   margin: 0 0 12px;
+}
+
+/* ---- settings groups -------------------------------------- */
+.settings-group {
+  margin-top: 40px;
+}
+
+/* First group sits right under the page head, no extra lead. */
+.settings-group:first-of-type {
+  margin-top: 0;
+}
+
+.settings-group-label {
+  margin: 0 0 4px;
+  padding: 0 0 4px;
+  font-size: 11px;
+  font-weight: 590;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* The first section under a group label doesn't re-draw the hairline
+   divider — the label row already separates groups. */
+.settings-group > .detail-section:first-of-type {
+  margin-top: 8px;
+  padding-top: 20px;
+}
+
+.settings-desc {
+  margin: -8px 0 16px;
+}
+
+/* §20.8/§22.8 — Preferences: theme as a chip row, timezone select + Save.
+   Chips reuse the filter-bar register; the select matches .input geometry. */
+.pref-theme-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pref-theme-row .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pref-tz-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pref-tz-row .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pref-tz-row select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+    linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
+}
+
+.settings-desc code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
 }
 
 /* ---- forms inside modals ------------------------------------ */
@@ -2599,6 +2744,9 @@ select:disabled {
   border-radius: var(--radius-card);
   padding: 12px 14px;
   margin: 0 0 16px;
+  /* Fieldsets don't shrink below their content in Chromium unless told to —
+     without this, the line-item row forces the modal wider at small widths. */
+  min-width: 0;
 }
 
 .contact-list-fieldset legend,
@@ -2618,6 +2766,10 @@ select:disabled {
 
 .list-row .input {
   flex: 1;
+  /* Flexbox overflow fix (same class as .filter-bar): without min-width: 0
+     the input refuses to shrink below its intrinsic width, so the row
+     overflows the modal instead of compressing. */
+  min-width: 0;
 }
 
 .primary-toggle {
@@ -2732,6 +2884,14 @@ select:disabled {
   gap: 12px;
   padding: 12px 8px;
   border-bottom: 1px solid var(--hairline);
+  /* Borrowed from the marketing demo's timeline rows — hover/focus
+     raises the row so the list reads as interactive, not flat. */
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-signal);
+}
+.timeline-item:hover,
+.timeline-item:focus-within {
+  background: var(--surface-2);
 }
 
 .timeline-glyph {
@@ -2948,8 +3108,9 @@ select:disabled {
     padding: 5px;
   }
 
-  .cal-chip-title,
-  .cal-chip svg {
+  /* §11 mobile: drop only the title — the kind glyph carries meaning
+     and status still reads via the dot, so the register survives. */
+  .cal-chip-title {
     display: none;
   }
 
@@ -2961,6 +3122,68 @@ select:disabled {
   .cal-dow span {
     padding: 0 2px;
     text-align: center;
+  }
+
+  /* §11 mobile legend — the register the chip titles would have carried.
+     Same icon size as the chips, quiet tertiary, hairline top rule. */
+  .cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+
+  .cal-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .cal-legend-divider {
+    width: 1px;
+    height: 12px;
+    background: var(--border-subtle);
+  }
+
+  /* Status dots mirror the chip register: quiet = scheduled, filled rust =
+     overdue, hollow warning ring = partially paid. */
+  .cal-legend-item .cal-dot.legend-overdue {
+    background: var(--status-critical-hue);
+  }
+
+  .cal-legend-item .cal-dot.legend-partial {
+    background: transparent;
+    border: 1px solid var(--status-warning-hue);
+  }
+
+  /* Table toolbar — search takes its own line; the 9 status chips stay
+     one scrollable line instead of stacking into a tall block (§23.8). */
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    /* Flexbox overflow fix: without min-width: 0 the bar refuses to shrink
+       below its content and overflows the page instead of scrolling. */
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .filter-bar .chip {
+    flex: none;
+    white-space: nowrap;
   }
 
   .stats-strip {
@@ -3167,7 +3390,6 @@ select:disabled {
 .field-note { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
 .reply-box { padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
 .reply-input { width: 100%; resize: vertical; font-family: var(--mono); font-size: 13px; }
-.status-pending { color: var(--amber, #b45309); border-color: var(--amber, #d97706); }
 .integration-sub { border-top: 1px solid var(--border); padding-top: 12px; }
 .row-label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-2); }
 
@@ -3181,9 +3403,67 @@ select:disabled {
 .inbox-row { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
 .inbox-head { display: flex; justify-content: space-between; align-items: center; }
 .inbox-body { margin: 0; color: var(--text-2); }
-.badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border); color: var(--text-2); }
-.badge-spam { color: var(--danger, #b91c1c); border-color: var(--danger, #dc2626); }
-.badge-important { color: var(--success, #15803d); border-color: var(--success, #16a34a); }
+/* §1.1 badges — monochrome by default; classification variants carry a
+   DOT register, never text hue (the old hue-only spam/important classes
+   are retired — text stays on the 4.5:1 monochrome ramp, §1.1). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 510;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: none;
+  border: 1.5px solid var(--text-tertiary);
+  background: transparent;
+}
+
+/* important — resolved family: filled sage dot */
+.badge-important::before {
+  background: var(--status-positive-hue);
+  border-color: var(--status-positive-hue);
+}
+
+/* spam — terminal family: dimmed outline dot */
+.badge-spam::before {
+  border-color: var(--status-inert-hue);
+  opacity: 0.6;
+}
 .session-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .portal-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .portal-page .definition-row { display: flex; justify-content: space-between; align-items: center; }
+
+/* §23.8 — compact controls (.btn-sm, note-toolbar, toast actions) must
+   still meet the 44px touch floor. Placed last so these win over the
+   32px/24px rules above at equal specificity. */
+@media (max-width: 1024px) {
+  .btn-sm,
+  .note-tool {
+    min-height: 44px;
+  }
+  .note-tool {
+    min-width: 44px;
+  }
+  /* Toast controls — the visual stays small but the TAP target pads out
+     to the floor. The 24px .toast-close visual is centered inside the
+     44px hit area; .undo keeps its compact chrome with a padded target. */
+  .toast .undo,
+  .toast-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

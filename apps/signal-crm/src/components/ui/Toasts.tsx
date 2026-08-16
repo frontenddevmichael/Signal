@@ -5,9 +5,10 @@ import type { Toast } from "./useToasts";
 import { IconAlert, IconCheck, IconClose } from "../Icons";
 
 /**
- * §4.2 (v2) — toasts sit at --surface-4 with a --border-default edge and
- * popover shadow; the icon shape (check vs alert) carries the meaning —
- * never hue. Undo stays wherever reversible (§23.3, untouched).
+ * §3.2 — one-off action confirmations, never ongoing state. Toasts sit at
+ * --surface-4 with a --border-default edge and popover shadow (solid, per
+ * the flagged §1.4 deviation); the icon SHAPE (check vs alert) carries the
+ * meaning — never hue. Undo stays wherever reversible (§5.2).
  */
 export function Toasts({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -25,7 +26,7 @@ export function Toasts({ children }: { children: ReactNode }) {
     (t: Omit<Toast, "id">) => {
       const id = nextId.current++;
       setToasts((prev) => [...prev.slice(-3), { ...t, id }]);
-      // §23.2 — status visible ~300ms+; toasts linger long enough to act on.
+      // §5.3 — status visible long enough to act on.
       const timer = setTimeout(() => dismiss(id), 5000);
       timeouts.current.set(id, timer);
     },
