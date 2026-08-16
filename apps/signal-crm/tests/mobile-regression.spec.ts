@@ -781,6 +781,67 @@ test.describe("user menu popover focus contract", () => {
     await expect(pop).toBeHidden();
     await expect(trigger).toBeFocused();
   });
+
+  test("popover z-index sits above the modal backdrop and palette", async ({ page }) => {
+    await signIn(page);
+
+    // Open the user popover via the keyboard path (focus+Enter — the click
+    // path opens on hover then toggles shut, which the hover contract uses).
+    const trigger = page.getByRole("button", { name: /Open profile/ });
+    const openPop = async () => {
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.locator("#user-popover")).toBeVisible();
+    };
+    const pop = page.locator("#user-popover");
+    await openPop();
+
+    // Open the command palette on top (z-index 200) and confirm the popover
+    // (300) still wins the stack — the account menu must never tuck under.
+    await page.keyboard.press("Control+K");
+    await expect(page.locator(".palette-overlay")).toBeVisible();
+
+    const zs = await page.evaluate(() => {
+      const popEl = document.querySelector("#user-popover");
+      const palEl = document.querySelector(".palette-overlay");
+      return {
+        popover: popEl ? Number(getComputedStyle(popEl).zIndex) : null,
+        palette: palEl ? Number(getComputedStyle(palEl).zIndex) : null,
+      };
+    });
+    expect(zs.popover).not.toBeNull();
+    expect(zs.palette).not.toBeNull();
+    expect(zs.popover!).toBeGreaterThan(zs.palette!);
+
+    // Escape closes the palette — and the popover's own document Escape
+    // handler also closes it, so reopen before the modal comparison.
+    await page.keyboard.press("Escape");
+    await openPop();
+
+    // Same against a modal (z-index 90): open the add-client dialog over the
+    // open popover. Keyboard activation (focus + Enter) so no mousedown
+    // outside the popover fires its click-outside close.
+    const addBtn = page.getByRole("button", { name: "Add client" }).first();
+    await addBtn.focus();
+    await page.keyboard.press("Enter");
+    const modal = page.locator(".modal");
+    await expect(modal).toBeVisible();
+
+    const zs2 = await page.evaluate(() => {
+      const popEl = document.querySelector("#user-popover");
+      const modalEl = document.querySelector(".modal-backdrop");
+      return {
+        popover: popEl ? Number(getComputedStyle(popEl).zIndex) : null,
+        modal: modalEl ? Number(getComputedStyle(modalEl).zIndex) : null,
+      };
+    });
+    expect(zs2.popover).not.toBeNull();
+    expect(zs2.modal).not.toBeNull();
+    expect(zs2.popover!).toBeGreaterThan(zs2.modal!);
+
+    await page.keyboard.press("Escape"); // close modal
+    await expect(pop).toBeHidden();
+  });
 });
 
 /**

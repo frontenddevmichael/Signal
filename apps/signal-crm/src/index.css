@@ -1289,11 +1289,14 @@ select:disabled {
 }
 
 .user-popover {
-  /* L2 glass SHELL — content rests on the solid .user-pop-inner card. */
+  /* L2 glass SHELL — content rests on the solid .user-pop-inner card.
+     Top of the overlay stack (300 — above palette 200, toasts 100,
+     modal 90): the account popover must never tuck under a modal or
+     the palette when it's open over the sidebar. */
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
-  z-index: 40;
+  z-index: 300;
   width: 300px;
   padding: 8px;
   border-radius: var(--radius-md);
@@ -1980,6 +1983,60 @@ select:disabled {
   .mini-cal .cal-chip-title {
     display: inline;
   }
+}
+
+/* ---- §6 meetings (client detail, timeline tab) ----------------
+   Same card shape as its siblings (mini-calendar, gmail-setup):
+   surface-card elevation, 16px inner padding, column stack. The list
+   rows are the shared .list-row flex row; the text side gets
+   min-width: 0 so long titles wrap instead of pushing the Remove
+   button off the card (the flex-overflow bug class). Links are on
+   the monochrome register — never the browser-default blue. ------ */
+.meetings-panel {
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meetings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meetings-list .list-row {
+  margin-bottom: 0;
+}
+
+/* The text side of a meeting row — flexes to fill, shrinks so the
+   Remove button never gets pushed off-card by a long title. */
+.meetings-list .list-row > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.meet-link {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.meet-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.meetings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
 }
 
 /* ---- Main content --------------------------------------------- */
