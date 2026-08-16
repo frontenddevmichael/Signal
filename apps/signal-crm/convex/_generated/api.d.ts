@@ -19,6 +19,7 @@ import type * as calendarLogic from "../calendarLogic.js";
 import type * as contacts from "../contacts.js";
 import type * as customFields from "../customFields.js";
 import type * as email from "../email.js";
+import type * as exportData from "../exportData.js";
 import type * as github from "../github.js";
 import type * as githubActions from "../githubActions.js";
 import type * as githubClient from "../githubClient.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   customFields: typeof customFields;
   email: typeof email;
+  exportData: typeof exportData;
   github: typeof github;
   githubActions: typeof githubActions;
   githubClient: typeof githubClient;

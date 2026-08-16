@@ -5,6 +5,7 @@ import { SecuritySettings } from "./SecuritySettings";
 import { SettingsSection } from "./SettingsSection";
 import { BackupSection } from "./BackupSection";
 import { CustomFieldsSection } from "./CustomFieldsSection";
+import { ExportSection } from "./ExportSection";
 import { PreferencesSection } from "./PreferencesSection";
 import { useOAuthCallbacks } from "./useOAuthCallbacks";
 
@@ -47,6 +48,7 @@ export function SettingsPage() {
 
       <div className="settings-group">
         <h2 className="settings-group-label">Data</h2>
+        <ExportSection />
         <CustomFieldsSection />
       </div>
     </div>

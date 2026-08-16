@@ -246,6 +246,7 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | Gmail | `gmail/*` | DONE (Phase 2e: GmailSetupBlock per-group rows; ReplyBox skeleton; fire-and-forget) |
 | Integrations | `integrations/*` | DONE (Phase 2e: emoji→icons; status role=status; no-catch mutations) |
 | Settings | `settings/*` | DONE (Phase 2e: Preferences loading/radio nav; dead class; no-catch) |
+| Settings — data export | `settings/ExportSection.tsx` | DONE (2026-08-16: user-initiated full data export — see feature log) |
 | Custom fields | `customFields/*` | DONE (Phase 2e: zero-option guard; skeleton; error toast) |
 | Portal | `Portal.tsx` | DONE (Phase 2e: role=alert errors; redemption focus → heading) |
 | Calendar | `Calendar.tsx` | DONE (Phase 2d: grid roving-tabindex + arrow keys; chips aria-label) |
@@ -253,6 +254,9 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | Follow-ups | `FollowUps.tsx` | DONE (Phase 2d: pending/disabled, spinner, error toast, Dismiss toasts) |
 | Loader / EmptyState / NotFound / ErrorBoundary | — | DONE (Phase 2a: EmptyState imports IconClients; loader-pulse signal-bar) |
 | App / main / lib / hooks | — | DONE (Phase 2e: format.ts stale comment fixed; en-NG confirmed deliberate) |
+
+## Feature log (post-rebuild additions)
+- **Data export (2026-08-16)** — the missing "export it" claim, closed. `convex/exportData.ts` (`api.exportData.all`): one authenticated query returning every user-owned row — contacts + their contact_emails/contact_phones, projects, repos/project_repos/repo_activity, notes, timeline_events, invoices (raw counters + `derivedStatus` per §18) + line items, messages, documents, calendar_events (meetings incl.), follow_up_reminders, custom_field_definitions/values, portal_tokens, push_subscriptions, sessions, api_keys (**metadata-only** — labels/created/last-used, never the hashed key), invoice_counters, audit_log, contact_undo, gmail_filter_setup, user. All scoped via `userId`/owned-subtree; browser never re-derives schema. `src/lib/export.ts`: pure bundle builder (manifest + README + 24 entity JSON + 22 CSVs, deterministic order, RFC-style CSV escaping, integer minor-unit money, ISO-8601 UTC dates) — zero DOM/network, Vitest-covered (19 tests). `ExportSection.tsx`: Settings → Data group → "Download archive" → JSZip client-side → `signal-export-YYYY-MM-DD.zip`; spinner + disabled while busy, toast on success/error, no partial downloads. Playwright contract guard in the regression suite (download fires, manifest parses, probe client + integer money present in both JSON and CSV). Verified: tsc clean, 206/206 vitest, 37/37 Playwright (two isolated re-runs confirmed the sign-in cold-JIT flake, not regressions), build green.
 
 ## Verification baseline (pre-fix)
 - Vitest: 176/176 (23 files). Playwright: 28/28 (smoke, mobile-regression, palette, modal-focus, fuzzy).

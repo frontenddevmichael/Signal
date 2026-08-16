@@ -31,35 +31,39 @@ Archive filename: `signal-export-YYYY-MM-DD.zip` (date in the user's local timez
 
 Contents:
 
-- `manifest.json` — schema version, generated-at (ISO-8601 UTC), per-table row counts, the money-encoding note, the api-keys honesty note. Single source of truth for what's inside.
+- manifest.json — schema version, generated-at (ISO-8601 UTC), per-table row counts, the money-encoding note, the api-keys honesty note. Single source of truth for what's inside.
 - `README.md` — plain-language: what's here, what the money numbers mean (minor units), what a CSV column means, what's deliberately *not* here (raw API keys, sessions/push tokens could not reveal anything).
-- 15 entity JSON files (nested, lossless):
-  1. `contacts.json` — contacts with nested arrays: projects, notes, timeline events, meeting events, document/email links, GitHub activity.
-  2. `projects.json` (relation map in addition to nesting)
-  3. `notes.json`
-  4. `timeline_events.json`
-  5. `invoices.json` — with nested line items and amounts, statuses derived per §18 exported as derived fields alongside raw counters.
-  6. `invoice_line_items.json`
-  7. `messages.json`
-  8. `meetings.json`
-  9. `custom_field_definitions.json`
-  10. `custom_field_values.json`
-  11. `repo_links.json`
-  12. `calendar_events.json` (incl. the 4 chip kinds)
-  13. `push_subscriptions.json` — metadata rows (no raw push data beyond what the user owns)
-  14. `sessions.json` — metadata rows
-  15. `api_keys.json` — **label/created/last-used only**; keys are hashed at rest and can never be reconstructed.
-- 12 flat CSVs for the tabular entities: contacts, projects, notes, timeline_events, invoices, invoice_line_items, messages, meetings, custom_field_definitions, custom_field_values, repo_links, calendar_events.
 
-CSV rules: escaped exactly (commas, embedded quotes, newlines, UTF-8); no BOM games — always UTF-8 with a header row of the entity's stored field names. Every CSV row count equals its JSON row count. Money appears as integers in minor units in both.
+**Entity-set reconciliation (2026-08-16, flagged at implementation):** the approved file list below was written against a sketchy earlier entity review. The real schema differs, and decision A ("full dataset — every user-owned table") wins:
+- There is **no `meetings` table** — meetings are `calendarEvents` rows (`meetings.ts` writes `calendarEvents` with `googleEventId: "manual-…"`). They export inside `calendar_events.json`, not a separate file.
+- The design's `repo_links` maps to two real tables: `repos.json` (the repo rows) + `project_repos.json` (the link table).
+- File list omits tables decision A requires — all now exported: `contact_emails`, `contact_phones`, `documents`, `follow_up_reminders`, `portal_tokens`, `invoice_counters`, `audit_log`, `contact_undo`, `repo_activity`, `gmail_filter_setup`.
+- `user.json` carries the account row.
+- `audit_log.json` / `contact_undo.json` are JSON-only (free-form `metadata` / multi-KB `snapshot` blobs are worse than useless as flat CSV cells).
+- Entity JSON names match the schema's table names (camelCase JSON keys, snake_case filenames).
 
-Every row carries `_creationTime` where the schema stores it.
+Entity JSON files (one per user-owned table, flat + lossless, nested relations preserved via the FK columns):
+1. `contacts.json`, `contact_emails.json`, `contact_phones.json`
+2. `projects.json`, `repos.json`, `project_repos.json`, `repo_activity.json`
+3. `notes.json`, `timeline_events.json`
+4. `invoices.json` (raw counters + `derivedStatus` per §18), `invoice_line_items.json`
+5. `messages.json`, `documents.json`, `calendar_events.json` (meetings incl.), `follow_up_reminders.json`
+6. `custom_field_definitions.json`, `custom_field_values.json`
+7. `portal_tokens.json`, `push_subscriptions.json`, `sessions.json`, `api_keys.json` (**label/created/last-used only** — keys are hashed at rest and can never be reconstructed)
+8. `invoice_counters.json`, `audit_log.json`, `contact_undo.json`, `gmail_filter_setup.json`
+9. `user.json`
+
+Flat CSVs for the tabular entities (same rows as the JSON — every CSV row count equals its JSON row count): `contacts`, `contact_emails`, `contact_phones`, `projects`, `notes`, `timeline_events`, `messages`, `documents`, `calendar_events`, `follow_up_reminders`, `repos`, `project_repos`, `repo_activity`, `invoices`, `invoice_line_items`, `custom_field_definitions`, `custom_field_values`, `portal_tokens`, `push_subscriptions`, `sessions`, `api_keys`, `invoice_counters`, `gmail_filter_setup`.
+
+CSV rules: escaped exactly (commas, embedded quotes, newlines, UTF-8); no BOM games — always UTF-8 with a header row of the entity's stored field names. Money appears as integers in minor units in both.
+
+Every row carries `_creationTime` where the schema stores it, plus the Convex `_id` (the FK map).
 
 ## Implementation (part 2, approved)
 
 ### Server: `convex/exportData.ts`
 
-One authenticated query, `api.export.all`, returns the full dataset assembled server-side: every user-owned row pulled via the existing `userId` scoping helpers, contacts with their nested children joined, invoices with line items. Deterministic ordering (creation-time then id) so the archive is reproducible and diffable. The browser never re-derives schema or scoping.
+One authenticated query, `api.exportData.all`, returns the full dataset assembled server-side: every user-owned row pulled via the existing `userId` scoping helpers, contacts with their nested children joined, invoices with line items. Deterministic ordering (creation-time then id) so the archive is reproducible and diffable. The browser never re-derives schema or scoping.
 
 ### Client: `src/lib/export.ts`
 

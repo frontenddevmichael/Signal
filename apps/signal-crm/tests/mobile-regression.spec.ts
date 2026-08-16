@@ -124,6 +124,69 @@ test("seed fixture data (client → project → meeting → invoice)", async ({ 
   expect(INVOICE_URL).toContain("/invoices/");
 });
 
+/**
+ * §4 export contract — the Settings "Download archive" button must fire a real
+ * download named signal-export-*.zip whose manifest parses and whose
+ * contacts.json contains the seeded client. Guards the full pipeline:
+ * click → server query → local bundle → JSZip → <a download>.
+ */
+test.describe("data export", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test("Download archive fires a zip; manifest parses; the client just added is present", async ({ page }) => {
+    await signIn(page);
+    // Self-sufficient: create its own client so the archive must contain it
+    // (independently of the serial fixture — the export contract stands on
+    // its own under any -g filter).
+    const stamp = Date.now();
+    const exportClient = `Export Probe ${stamp}`;
+    await page.getByRole("button", { name: /Add client/ }).first().click();
+    await page.locator("#cf-name").fill(exportClient);
+    await page.getByRole("button", { name: "Add client" }).last().click();
+    await page.waitForTimeout(600);
+
+    await page.goto("/settings");
+    const btn = page.getByRole("button", { name: "Download archive" });
+    await expect(btn).toBeVisible({ timeout: 15_000 });
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 30_000 });
+    await btn.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^signal-export-\d{4}-\d{2}-\d{2}\.zip$/);
+
+    // Read the zip back (jszip is a devDep — resolvable from the tests dir).
+    const { default: JSZip } = await import("jszip");
+    const { readFile } = await import("node:fs/promises");
+    const zipData = await readFile((await download.path())!);
+    const zip = await JSZip.loadAsync(zipData);
+    const manifestRaw = await zip.file("manifest.json")?.async("string");
+    expect(manifestRaw).toBeTruthy();
+    const manifest = JSON.parse(manifestRaw!);
+    expect(manifest.schemaVersion).toBe(1);
+    expect(manifest.encoding.money).toMatch(/minor units/);
+
+    const contactsRaw = await zip.file("contacts.json")?.async("string");
+    expect(contactsRaw).toBeTruthy();
+    const contacts = JSON.parse(contactsRaw!) as { name?: string }[];
+    expect(contacts.length).toBeGreaterThanOrEqual(1);
+    expect(contacts.map((c) => c.name)).toContain(exportClient);
+
+    // The invoice table made it too — money stays integer minor units in both
+    // the JSON and the CSV (any INV- row from the shared DB is fine here).
+    const invRaw = await zip.file("invoices.json")?.async("string");
+    expect(invRaw).toBeTruthy();
+    const invoices = JSON.parse(invRaw!) as { invoiceNumber?: string; total?: unknown }[];
+    const seeded = invoices.find((i) => i.invoiceNumber?.startsWith("INV-"));
+    expect(seeded).toBeTruthy();
+    const csv = await zip.file("invoices.csv")?.async("string");
+    expect(csv).toBeTruthy();
+    if (seeded && typeof seeded.total === "number") {
+      expect(Number.isInteger(seeded.total)).toBe(true);
+      expect(csv!).toContain(String(seeded.total));
+    }
+  });
+});
+
 test.describe("mobile regression — 390×844", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
