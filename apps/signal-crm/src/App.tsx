@@ -16,8 +16,11 @@ import { Calendar } from "./components/Calendar";
 import { NotFound } from "./components/NotFound";
 
 /**
- * Auth gate: full-page loader (tier-3, §22.13) while Convex Auth resolves,
- * then the routed, authenticated Shell or the SignIn screen.
+ * Auth gate: the tier-3 full-page loader (§3.3) while Convex Auth resolves,
+ * then either the routed, authenticated Shell or the public SignIn screen.
+ * Toasts wrap every surface so undo/error feedback works app-wide. Portal is
+ * reachable before auth (token-carrying links) and inside the Shell (the
+ * freelancer's signed-in preview).
  */
 export default function App() {
   const { isAuthenticated, isLoading } = useConvexAuth();

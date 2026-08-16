@@ -67,9 +67,16 @@ const TITLES: Record<string, string> = {
 };
 
 /**
- * §22.7 authenticated shell: surface-1 sidebar + surface-1 topbar with hairline
- * edges (§1.4 — elevation via the surface ladder, glass is gone). Routes render
- * in <Outlet/>. Also records the §18 sessions row per device on auth + focus.
+ * §22.7 authenticated shell: surface-1 sidebar + surface-1 topbar, flat
+ * elevation-1 (never glass) with directional L1 shadows (§1.3) — the sidebar's
+ * shadow points right, the tabbar's points up. Landmarks: the aside is the
+ * PRIMARY rail (incl. status/footer/user), the inner sidebar <nav> is
+ * "Workspace", the mobile tabbar is "Primary navigation" (distinct string —
+ * no duplicate landmark). Routes render in <Outlet/> under an ErrorBoundary
+ * keyed by pathname so one crashing screen never blanks the app. Also owns
+ * the chrome-wide concerns: theme resolution, per-route document titles,
+ * the §18 sessions row per device, the §20.8 timezone, ⌘N quick-create,
+ * and the §12 web-push subscription.
  */
 export function Shell() {
   const { signOut } = useAuthActions();
@@ -79,7 +86,7 @@ export function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // v2 design — dark-first default; light is the inverted ladder.
+  // v3 design — dark-first default; light is the inverted ladder.
   const themePreference: ThemePreference = myUser?.themePreference ?? "dark";
 
   // §12 web push — subscribe this browser once signed in (silent if unconfigured).
@@ -327,10 +334,9 @@ export function Shell() {
  * command palette offers, one click from anywhere in the app.
  *
  * Real menu semantics (§5.8/HCI): the trigger carries aria-haspopup +
- * aria-expanded, ArrowUp/ArrowDown cycle the items (roving tabindex via
- * aria-activedescendant is overkill for two always-identical items — focus
- * moves to the active item instead), keyboard focus enters the first item on
- * open and returns to the trigger on close, Enter/Space activate, Esc closes.
+ * aria-expanded, ArrowUp/ArrowDown cycle the items (roving tabindex; focus
+ * moves to the active item), keyboard focus enters the first item on open
+ * and returns to the trigger on close, Enter/Space activate, Esc closes.
  */
 const QUICK_ITEMS: { event: string; label: string; hint?: string }[] = [
   { event: NEW_CONTACT_EVENT, label: "New contact", hint: "⌘N" },

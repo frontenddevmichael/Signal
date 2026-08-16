@@ -922,24 +922,26 @@ select:disabled {
   min-height: 100vh;
 }
 
+/* Flat elevation-1 rail — the shell is locked flat (§1.4), never glass.
+   The right edge is an elevation shadow, not a hairline: elevation
+   replaces borders on separated surfaces; hairlines survive only as
+   internal dividers (the footer rule below). The --elev-1-right mirror
+   throws the shadow AWAY from the rail onto the content. */
 .sidebar {
   width: 240px;
   flex: none;
   display: flex;
   flex-direction: column;
   padding: 20px 12px;
-  /* v3: flat surface-1 + L1 elevation — the shell never uses glass.
-     The right edge is a shadow, not a hairline (elevation replaces
-     borders; hairlines remain only as dividers inside the surface). */
   background: var(--surface-1);
   box-shadow: var(--elev-1-right);
   position: sticky;
   top: 0;
   height: 100vh;
-  /* Short viewports (landscape, small laptops): the rail's content
-     (brand + nav + status + footer) can exceed the viewport height. Without
-     this the footer is clipped with no way to scroll to it — the rail
-     becomes its own scroll container so Sign out stays reachable. */
+  /* Short viewports (landscape, small laptops): rail content (brand + nav +
+     status + footer) can exceed the viewport height. Without this the
+     footer is clipped with no way to scroll to it — the rail becomes its
+     own scroll container so Sign out stays reachable. */
   overflow-y: auto;
 }
 
@@ -973,11 +975,10 @@ select:disabled {
   gap: 2px;
 }
 
-/* Nav entrance — the rail staggers in 40ms apart (v3 motion). Runs once
-   on mount; reduced-motion global kills it. `backwards` fill holds the
+/* Nav entrance — the rail staggers in 40ms apart (v3 motion). Runs once on
+   mount; the reduced-motion global kills it. `backwards` fill holds the
    from-frame only during each item's delay, then releases so hover/press
    transforms are never blocked by a finished animation. */
-
 .nav-section .nav-item,
 .sidebar-footer .nav-item {
   animation: nav-in var(--duration-moderate) var(--ease-signal) backwards;
@@ -1026,9 +1027,10 @@ select:disabled {
   transition: background var(--duration-fast) var(--ease-signal),
     color var(--duration-fast) var(--ease-signal),
     transform var(--duration-instant) var(--ease-signal);
-
 }
 
+/* Hover — one surface step up, tone-shift only (never lift: that is the
+   card register's motion). The row reads as interactive without moving. */
 .nav-item:hover {
   background: var(--surface-2);
   color: var(--text-primary);
@@ -1081,6 +1083,9 @@ select:disabled {
   flex: 1;
 }
 
+/* Footer divider is a hairline INSIDE the rail surface — the documented
+   separator-between-flat-areas exception, not a border standing in for
+   elevation. */
 .sidebar .sidebar-footer {
   display: flex;
   flex-direction: column;
@@ -1192,6 +1197,9 @@ select:disabled {
   color: var(--text-tertiary);
 }
 
+/* Connection dot: a quiet tertiary dot at rest; offline it takes the
+   primary (not a hue) tone and pulses, so the degraded state is visible
+   without a colored alert. */
 .conn-dot {
   width: 8px;
   height: 8px;
@@ -1386,6 +1394,9 @@ select:disabled {
 }
 
 /* ---- Top status bar — flat surface-1, L1 elevation (never glass) ---- */
+/* Flat elevation-1 bar (shell is locked flat). The shadow is the downward
+   --elev-1 mirror — it falls off the bar onto the content, never onto the
+   bar itself. */
 .topbar {
   display: flex;
   align-items: center;
@@ -1463,8 +1474,6 @@ select:disabled {
   align-items: center;
   gap: 8px;
 }
-
-
 
 /* §2.4 — the command palette trigger in the topbar: icon + hint chip. */
 .palette-trigger {
@@ -2085,8 +2094,8 @@ select:disabled {
     left: 0;
     right: 0;
     z-index: 50;
-    /* v3: flat surface-1 + upward L1 elevation (elevation replaces the
-       border); never glass. */
+    /* Flat surface-1 + upward L1 elevation — the --elev-1-up mirror throws
+       the shadow off the bar onto the content above it; never glass. */
     background: var(--surface-1);
     box-shadow: var(--elev-1-up);
   }

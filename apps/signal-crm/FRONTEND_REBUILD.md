@@ -91,6 +91,24 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
   shell-not-payload per §1.4. Verified: tsc clean, 206/206 vitest, 42/42
   Playwright (all overlay contracts pass). Committed on
   `feat/quiet-future-os-rebuild`.
+- **2c shell — DONE (2026-08-16)**: delete-and-rebuilt `Shell.tsx` and
+  `App.tsx` fresh (same contracts: landmarks `Primary` aside /
+  `Workspace` inner nav / `Primary navigation` tabbar, per-route titles,
+  back link, per-route status chips, ⌘N quick-create, sessions/push/
+  timezone rows, sign-out in footer + persistent mobile tabbar entry) and
+  the shell CSS blocks fresh from tokens — `.shell`/`.sidebar` rail
+  (flat surface-1 + `--elev-1-right` mirror, own scroll container),
+  `.nav-item` register (hover tone-shift on surface-2, active surface-3 +
+  510 weight, active:hover surface-4, nav-count on the raised step),
+  nav-in stagger entrance, `.nav-section`/label, `.brand`/`.quick-add`,
+  `.sidebar-status`/`.conn-dot`/`.status-chip`, `.topbar` (flat surface-1 +
+  `--elev-1` mirror) + `.overdue-chip`, and the `.tabbar` media rules
+  (flat + `--elev-1-up`, `display: contents` wrapper dissolve, 44px items,
+  absolute nav-count). Behavior-neutral (shell was already audit-clean,
+  same as 2a-ii): selectors/tokens unchanged, comments refreshed, stray
+  blank lines before closing braces cleaned. Verified: tsc clean,
+  206/206 vitest, 42/42 Playwright single-worker (all shell/nav/mobile
+  contracts pass). Committed on `feat/quiet-future-os-rebuild`.
 - **2a-ii chrome primitives — DONE (2026-08-16)**: rebuilt the button register
   (`.btn` + primary/ghost/danger/danger-ghost/`-sm`), `.icon-btn`, `.kbd`,
   `.chip`, `.card-hover` gate, `.avatar`/`.avatar-lg`, `.tag-chip`,
