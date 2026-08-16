@@ -1,0 +1,35 @@
+---
+import "@fontsource-variable/inter";
+import "@fontsource-variable/geist-mono";
+import "signal-ui/tokens.css";
+import "signal-ui/squircle.css";
+import "../styles/global.css";
+import { SquircleDef } from "signal-ui/Squircle";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "Signal — Entropy to Signal" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta
+      name="description"
+      content="Signal turns the chaos of running a solo dev business — invoices, repos, follow-ups — into one calm surface. Free forever."
+    />
+    <meta name="theme-color" content="#08090a" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content="Signal — Entropy to Signal" />
+    <meta property="og:description" content="The chaos of a solo dev business, assembled into one calm surface." />
+  </head>
+  <body>
+    <SquircleDef />
+    <slot />
+  </body>
+</html>

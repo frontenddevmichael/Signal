@@ -16,6 +16,17 @@ playwright-report
 .env
 .env.production
 
+# Local Convex dev state (per-checkout, not source)
+.convex
+.convex/
+
+# Temp seeded auth JWT (local dev only)
+seed-jwt.tmp
+
+# Local Convex dev-server redirect logs + verification screenshots dir (regenerated on demand)
+.convex-dev-*.txt
+walk-shots/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

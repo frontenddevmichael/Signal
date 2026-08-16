@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Post-install build-script allowances (moved up from the site's standalone
+# workspace file when the monorepo restructure happened).
+allowBuilds:
+  esbuild: true
+  sharp: true

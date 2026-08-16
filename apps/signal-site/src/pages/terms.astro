@@ -1,0 +1,49 @@
+---
+import Base from "../layouts/Base.astro";
+import { SignalBar } from "signal-ui/SignalBar";
+---
+
+<Base title="Terms — Signal">
+  <div class="legal">
+    <a class="legal-brand" href="/">
+      <SignalBar size={16} className="mark" />
+      <span>Signal</span>
+    </a>
+    <p class="section-kicker">Terms</p>
+    <h1 class="legal-title">Short, honest, and boring on purpose.</h1>
+
+    <div class="legal-prose">
+      <h2>Free forever</h2>
+      <p>
+        Signal is donation-funded and free to use — no plans, no tiers, no paywall hiding useful features.
+        That's a commitment, not a marketing trick. If it ever has to change, the pricing page says so
+        before anything else does.
+      </p>
+
+      <h2>Your data, your call</h2>
+      <p>
+        You own everything you put in. Export it, delete it, take it elsewhere — there's no lock-in and
+        no ransom. Signal never shares your data.
+      </p>
+
+      <h2>One freelancer at a time</h2>
+      <p>
+        Signal is built for solo operators. Sharing credentials across a team isn't supported and isn't
+        the deal — each account is one operator's surface.
+      </p>
+
+      <h2>Service, as is</h2>
+      <p>
+        Signal is provided as-is. We fix things fast when they break, but there's no paid uptime promise —
+        there's nothing to pay. Invoices and financial records are your responsibility to keep accurate.
+      </p>
+
+      <p class="legal-closing">
+        Questions? The <a href="/#pricing">pricing page</a> explains where a donation goes, and the
+        <a href="/privacy">privacy page</a> explains what we do with your data.
+      </p>
+    </div>
+
+    <a class="btn btn-ghost" href="/">← Back to Signal</a>
+  </div>
+</Base>

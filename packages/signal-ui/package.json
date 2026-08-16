@@ -1,0 +1,26 @@
+{
+  "name": "signal-ui",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "description": "Shared presentational layer for Signal (tokens, mark, icons, status register). Prop-driven, zero data deps.",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./squircle.css": "./src/squircle.css",
+    "./SignalBar": "./src/SignalBar.tsx",
+    "./Icons": "./src/Icons.tsx",
+    "./StatusChip": "./src/StatusChip.tsx",
+    "./Squircle": "./src/Squircle.tsx",
+    "./calendar": "./src/calendar.ts",
+    "./CalendarGrid": "./src/CalendarGrid.tsx",
+    "./ClientDetailShell": "./src/ClientDetailShell.tsx",
+    "./PalettePanel": "./src/PalettePanel.tsx"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}

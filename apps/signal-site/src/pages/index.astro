@@ -1,0 +1,90 @@
+---
+import Base from "../layouts/Base.astro";
+import Topbar from "../components/Topbar";
+import Entrance from "../components/Entrance";
+import Features from "../components/Features";
+import Demo from "../components/Demo";
+import Terminal from "../components/Terminal";
+import Pulse from "../components/Pulse";
+import Footer from "../components/Footer";
+---
+
+<Base>
+  <Topbar client:visible />
+
+  <main>
+    <!-- 3.1 hero — the loud moment (island, scroll-scrubbed) -->
+    <Entrance client:visible />
+
+    <!-- 3.2 features scrollytelling (island, scroll-scrubbed, calm) -->
+    <Features client:visible />
+
+    <!-- 3.3 live product demo — real shared components, scroll-constructed, interactive -->
+    <Demo client:visible />
+
+    <!-- 3.4 interactive terminal — scripted demo, real focus handling -->
+    <Terminal client:visible />
+
+    <!-- 3.5 live pulse — quiet ambient stream, illustrative-until-real -->
+    <Pulse client:visible />
+
+    <!-- 3.6 pricing — prose-only, calm, zero JS (spec: no figures, no table) -->
+    <section id="pricing" class="section pricing-section" aria-label="Pricing">
+      <div class="pricing-intro">
+        <p class="section-kicker">Pricing</p>
+        <h2 class="section-title">Free forever.</h2>
+        <p class="display-sub">
+          Not a free trial. Not a free tier. The whole product, for one freelancer at a time — and it stays that way.
+        </p>
+      </div>
+
+      <div class="pricing-prose">
+        <article class="pricing-block">
+          <span class="pricing-index num" aria-hidden="true">01</span>
+          <div class="pricing-copy">
+            <h3>The deal</h3>
+            <p>
+              Signal is donation-funded. There are no plans, no tiers, no paywall hiding the useful features —
+              invoicing, the timeline, the calendar, the portal, everything ships to everyone. What you pay is
+              nothing, and what you owe is nothing. Your data is yours: export it, delete it, take it somewhere
+              else — no lock-in, no ransom.
+            </p>
+          </div>
+        </article>
+
+        <article class="pricing-block">
+          <span class="pricing-index num" aria-hidden="true">02</span>
+          <div class="pricing-copy">
+            <h3>What it costs to run</h3>
+            <p>
+              Honest answer: servers and storage for your data, email and push delivery so invoices and nudges
+              actually arrive, the domain, and the hours of the one person who builds and answers for it. The
+              exact figures change month to month, so we won't print numbers that could be wrong — that's the
+              whole point of this section.
+            </p>
+          </div>
+        </article>
+
+        <article class="pricing-block">
+          <span class="pricing-index num" aria-hidden="true">03</span>
+          <div class="pricing-copy">
+            <h3>Where a donation goes</h3>
+            <p>
+              First, the running costs above — keeping the lights on is the entire obligation. Beyond that,
+              nothing is hidden: no ads, no selling your data, no investor pressure to grow at your expense.
+              Donations that exceed the bills go toward the only thing left, which is time — the time to keep
+              making Signal better for the people actually using it.
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <p class="pricing-honesty">
+        If that ever changes — if this stops being free, or the money stops being straightforward — this page
+        will be the first place you read about it.
+      </p>
+    </section>
+  </main>
+
+  <Footer client:visible />
+</Base>

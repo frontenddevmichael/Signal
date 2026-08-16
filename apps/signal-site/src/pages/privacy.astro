@@ -1,0 +1,50 @@
+---
+import Base from "../layouts/Base.astro";
+import { SignalBar } from "signal-ui/SignalBar";
+---
+
+<Base title="Privacy — Signal">
+  <div class="legal">
+    <a class="legal-brand" href="/">
+      <SignalBar size={16} className="mark" />
+      <span>Signal</span>
+    </a>
+    <p class="section-kicker">Privacy</p>
+    <h1 class="legal-title">Your data is yours.</h1>
+
+    <div class="legal-prose">
+      <h2>What Signal stores</h2>
+      <p>
+        The things you put in it: contacts, projects, notes, timelines, invoices and their line items,
+        calendar events, linked-repo activity, and your account details. All of it lives in a hosted
+        database (Convex) and is served only to you when you're signed in.
+      </p>
+
+      <h2>What we never do</h2>
+      <p>
+        No ads. No selling or renting your data to anyone. No investor pressure to grow at your expense.
+        The client portal only ever shows the specific records you attach a portal link to — nothing else.
+      </p>
+
+      <h2>Backups</h2>
+      <p>
+        Records with real financial weight (invoices, line items, contacts) are exported weekly to
+        independent cold storage so a provider outage can't destroy them. Backups are a safety net, not
+        a data sale.
+      </p>
+
+      <h2>Deletion</h2>
+      <p>
+        Delete a client and it's gone (reversible from the undo toast for a short window). Delete your
+        account and every record it owns is deleted; only the audit-log rows required by policy are
+        retained.
+      </p>
+
+      <p class="legal-closing">
+        If this ever changes, the <a href="/#pricing">pricing page</a> will be the first place you read about it.
+      </p>
+    </div>
+
+    <a class="btn btn-ghost" href="/">← Back to Signal</a>
+  </div>
+</Base>
