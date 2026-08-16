@@ -223,7 +223,7 @@ export function buildExportBundle(data: ExportDataset): ExportFile[] {
   };
   files.push({ filename: "manifest.json", content: `${JSON.stringify(manifest, null, 2)}\n` });
 
-  files.push({ filename: "README.md", content: readme(counts) });
+  files.push({ filename: "README.md", content: readme(counts, generatedAtIso(data)) });
 
   // user.json — the account row.
   if (data.user) {
@@ -241,7 +241,7 @@ export function buildExportBundle(data: ExportDataset): ExportFile[] {
   return files;
 }
 
-function readme(counts: Record<string, number>): string {
+function readme(counts: Record<string, number>, generatedAt: string): string {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const lines = [
     "# Signal — data export",
@@ -274,7 +274,7 @@ function readme(counts: Record<string, number>): string {
     "  signed in.",
     "",
     `This archive holds ${total} rows across ${Object.keys(counts).length} entities, exported `
-    + `${new Date().toISOString()}.`,
+    + `exported ${generatedAt}.`,
     "",
   ];
   return `${lines.join("\n")}\n`;
