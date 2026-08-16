@@ -177,6 +177,86 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
     43/43 Playwright single-worker. Committed on
     `feat/quiet-future-os-rebuild`.
 
+## Close-out sweep (2026-08-16 — post-rebuild hardening, tabbar & touch register)
+
+Post-2d hardening pass over the last audit leftovers and the mobile/touch surface.
+Four commits on `feat/quiet-future-os-rebuild`:
+
+- **`dea4d5c` — Meetings container + popover z-index.** The meetings panel
+  (client detail, timeline tab) had ZERO CSS of its own — it rode only on
+  `surface-card`, so content sat flush (padding 0), the list had no spacing,
+  and `.meet-link` rendered as the browser-default blue link (monochrome
+  violation; no global anchor rule existed). Rebuilt onto the register
+  matching its siblings (mini-calendar, gmail-setup): `.meetings-panel` 16px
+  padding / column stack / 12px gap / 16px bottom margin, `.meetings-list`
+  8px gap + `min-width: 0` on the row text side (the flex-overflow bug class),
+  `.meet-link` `--text-secondary` + hover underline + `break-all`. Verified
+  live in both empty and populated states (seeded through the real form; the
+  meeting also surfaced as a mini-calendar chip). Separately: `.user-popover`
+  was `z-index: 40` — BELOW the modal backdrop (90), toasts (100), and palette
+  (200), so it tucked under any open overlay. Raised to **300**, the top of
+  the overlay stack (the sidebar is `position: sticky` with no z-index or
+  transform, so it doesn't trap the popover in a stacking context — the raise
+  is effective globally). New permanent guard in the mobile-regression suite
+  asserting the ordering live (popover > palette overlay, popover > modal
+  backdrop; opened via the keyboard path because a mouse click opens on hover
+  and the click then toggles shut — the existing hover contract, not a bug).
+  Verified: tsc clean, 206/206 vitest, 44/44 Playwright.
+- **`e3b9975` — mobile tabbar shows labels.** The responsive tabbar was
+  rendering ICONS ONLY — the compact `nav(true)` branch dropped the label
+  span, so each destination was an ambiguous glyph. The tabbar CSS was already
+  built for the icon-over-label stack (column flex, 11px type, 2px gap); the
+  labels were simply never rendered. Now every item shows its label — Clients,
+  Invoices, Inbox, Calendar, Follow-ups, Settings, Sign out — with nowrap +
+  ellipsis truncation so seven labeled items hold one 44px row at 320-360px.
+  The existing 390px tabbar spec asserted only `aria-label`; strengthened to
+  assert the VISIBLE text equals the seven labels, so icon-only can't silently
+  return. Verified: tsc clean, 206/206 vitest, 44/44 Playwright.
+- **`a7acf63` — icon-only touch-label sweep.** Added the `.touch-label`
+  utility: hidden by default, revealed only under `@media (pointer: coarse)`,
+  so desktop/keyboard stay compact and touch gets recognition-over-recall
+  words (§5.6). Labels added to: quick actions in both tables (the chevron
+  was a bare "Open" guess on touch; the pill widens to hold a visible Open
+  word), the user-popover Copy button, the note toolbar's four tools (the
+  worst offenders — `•≡` and `H` were cryptic even on desktop; now Bold /
+  Italic / Bullet list / Heading, toolbar wraps to fit), and the form ✕
+  remove buttons (ContactForm email/phone rows, InvoiceForm line items — now
+  "Remove" on touch). Checked and deliberately left alone: palette actions
+  (already carry visible labels + sub-lines; footer already adapts per
+  device) and universal glyphs (calendar chevrons, moon/sun theme toggle,
+  toast ✕, back — standard affordances where a label would be noise). New
+  guard in `quick-actions-touch.spec.ts` asserting the label is visible,
+  reads "Open", and the pill is wider than the bare 28px icon. Verified:
+  tsc clean, 206/206 vitest, 45/45 Playwright.
+- **`433529e` — tabbar contract at every narrow width.** The tabbar guard
+  only ran at 390×844; the narrow/landscape block (320×568, 360×640,
+  568×320, 667×375, 844×390) never checked it. Extracted the full contract
+  into a shared `assertTabbar()` helper and wired it into the narrow loop:
+  per width, all 7 labels visible as text, every item ≥ 44px, single row,
+  bar ≤ 60px, no horizontal page overflow — plus a truncation check (each
+  label ellipsis-truncates, never wraps, never spills its ~45px item). 5 new
+  tests, all green. Verified: tsc clean, 206/206 vitest, 50/50 Playwright
+  single-worker.
+
+**Light-mode tabbar walk (verification only, no code changed)** — cycled
+`dark → system → light` through the topbar toggle and probed the tabbar's
+computed tokens against the inverted ladder: bar `rgb(248,247,245)`
+(`--surface-1` light `#f8f7f5`), upward `--elev-1-up` shadow mirror, active
+item `--surface-3` white at 510 weight, resting `--text-secondary`, hover
+register `--surface-2 → 3 → 4` (the light ladder's `#fbfbf9 → #fdfdfc →
+#ffffff` progression). Nav-count badge verified via live probe (`--text-secondary`
+on white `--surface-3`, `--border-default` hairline, mono font — inverts
+correctly; no counts exist on the test account to photograph). All 7 labels
+render in light; toggled back to dark and confirmed the active register
+re-inverted (`rgb(24,25,26)` = dark `--surface-3`).
+
+**Remaining open flags after close-out:** the Portal USD hardcode (backend
+`convex/portal.ts` doesn't return `currency` — render fix requires a
+backend-data change, out of scope for the visual rebuild; flagged in the 2d
+entry), `formatMoney` en-NG (deliberate, documented), and the radius-scale
+design confirmations (`.chip` 999px, `settings-section` 8px). Everything else
+from the Phase 1 inventory is either rebuilt or resolved.
+
 ## Audit result (2026-08-15, three parallel passes)
 
 **The v3 "Quiet Future OS" rebuild has ALREADY been executed across the product.** Every one
@@ -395,7 +475,7 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | Unit | File(s) | Status |
 |---|---|---|
 | Sign-in | `SignIn.tsx` | DONE (Phase 2e: field-error tint + aria-invalid/describedby + aria-busy) |
-| Shell | `Shell.tsx` | DONE (Phase 2c: landmarks fixed; menu semantics carried from Phase 2b) |
+| Shell | `Shell.tsx` | DONE (Phase 2c: landmarks; close-out: tabbar labels at every width, user popover z-index 300) |
 | Command palette | `CommandPalette.tsx` | DONE (Phase 2b: focus ring via :focus-within; Phase 2e carried) |
 | User menu | `UserMenu.tsx` | DONE (Phase 2b: popover focus contract) |
 | Modal | `ui/Modal.tsx` | DONE (documented focus contract verified) |
@@ -413,7 +493,7 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | Projects | `projects/*` | DONE (Phase 2e: ImportRepoDialog effect; ProjectRepos Unlink pending+catch) |
 | Notes | `notes/NoteComposer.tsx` | DONE (Phase 2e: note-editor :focus-visible ring) |
 | Timeline | `timeline/Timeline.tsx` | DONE (sanitizer flagged, not a 2e defect) |
-| Meetings | `meetings/MeetingsPanel.tsx` | DONE (Phase 2e: remove catches) |
+| Meetings | `meetings/MeetingsPanel.tsx` | DONE (Phase 2e: remove catches; close-out: meetings container rebuilt onto the register) |
 | Gmail | `gmail/*` | DONE (Phase 2e: GmailSetupBlock per-group rows; ReplyBox skeleton; fire-and-forget) |
 | Integrations | `integrations/*` | DONE (Phase 2e: emoji→icons; status role=status; no-catch mutations) |
 | Settings | `settings/*` | DONE (Phase 2e: Preferences loading/radio nav; dead class; no-catch) |
