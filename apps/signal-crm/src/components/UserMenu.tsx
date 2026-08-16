@@ -16,6 +16,11 @@ const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon } as co
  * account info: email (copyable), timezone (§20.8 — it drives date rendering),
  * theme, active sessions, and the account actions. The close is delayed so a
  * mouse moving from the trigger into the popover doesn't flicker it shut.
+ *
+ * Focus behavior (L2 popover, NOT a modal — no focus trap). When opened by
+ * keyboard or click, focus moves INTO the popover so Tab starts inside it, and
+ * restores to the trigger on close. Hover-open/hover-close never move focus —
+ * the trigger had no focus to restore and yanking the keyboard would be wrong.
  */
 export function UserMenu({
   themePreference,
@@ -30,11 +35,11 @@ export function UserMenu({
   const { push } = useToasts();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<number | null>(null);
   // Whether the popover was opened by keyboard/click (not hover) — only then
-  // does close restore focus to the trigger. A hover-open/close never had
-  // focus on the trigger, so refocusing would yank the user's cursor away.
+  // does open move focus into it and close restore focus to the trigger.
   const openedByFocus = useRef(false);
 
   const name = myUser?.name ?? "Account";
@@ -64,6 +69,15 @@ export function UserMenu({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
+  }, [open]);
+
+  // Keyboard/click open: move focus into the popover (deferred past the
+  // mount so the popover is rendered). Hover opens skip this.
+  useEffect(() => {
+    if (open && openedByFocus.current) {
+      const t = window.setTimeout(() => popRef.current?.focus({ preventScroll: true }), 0);
+      return () => window.clearTimeout(t);
+    }
   }, [open]);
 
   const cancelClose = () => {
@@ -100,6 +114,7 @@ export function UserMenu({
         className="user-trigger"
         aria-label={`Account: ${name}. Open profile.`}
         aria-expanded={open}
+        aria-controls="user-popover"
         onClick={toggle}
       >
         <span className="avatar" aria-hidden="true">
@@ -112,7 +127,14 @@ export function UserMenu({
       </button>
 
       {open && (
-        <div className="user-popover" role="dialog" aria-label="Account">
+        <div
+          id="user-popover"
+          ref={popRef}
+          className="user-popover"
+          role="dialog"
+          aria-label="Account"
+          tabIndex={-1}
+        >
           <div className="user-pop-inner">
             <div className="user-pop-head">
               <span className="avatar avatar-lg" aria-hidden="true">

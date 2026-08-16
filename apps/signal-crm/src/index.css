@@ -1172,6 +1172,13 @@ select:disabled {
   background: var(--surface-4);
 }
 
+/* Keyboard arrow moves the active item (roving tabindex); it is also the
+   focused element, so the global :focus-visible ring marks it — the surface
+   lift keeps the current selection readable under that ring. */
+.quick-item.active {
+  background: var(--surface-4);
+}
+
 /* --- Sidebar status block (connection + counts) --- */
 .sidebar-status {
   display: flex;
@@ -1526,6 +1533,15 @@ select:disabled {
   color: var(--text-primary);
   font-size: 15px;
   font-family: inherit;
+}
+
+/* Focus visibility — `.palette-input` suppresses the browser outline (it
+   sits inside the row, a bare ring would double-frame the field), so the
+   row itself signals focus with a beacon underline. :focus-within matches
+   even for programmatic focus (the input is focused by the opener in a
+   timeout), which :focus-visible on the input would miss. */
+.palette-input-row:focus-within {
+  border-bottom-color: var(--beacon);
 }
 
 .palette-input::placeholder {

@@ -479,17 +479,33 @@ test.describe("command palette", () => {
     );
     expect(focusInside).toBe(true);
 
-    // Home/End move the active option and scroll it into view.
+    // Home/End move the active option and scroll it into view. End must land
+    // on the LAST option of the FULL list (actions + loaded rows), so wait
+    // for the contact/project rows to have loaded first — pressing End while
+    // the list only holds the 8 actions would cap active at the actions' last
+    // index and fail the last-option assertion once the rows arrive.
+    await expect
+      .poll(() => page.locator("[role=option]").count(), { timeout: 5_000 })
+      .toBeGreaterThan(8);
     await page.keyboard.press("End");
     const endId = await input.getAttribute("aria-activedescendant");
     expect(endId).toBe(`palette-opt-${(await page.locator("[role=option]").count()) - 1}`);
-    const inView = await page.evaluate((id) => {
-      const el = document.getElementById(id)!;
-      const r = el.getBoundingClientRect();
-      const list = document.getElementById("palette-listbox")!.getBoundingClientRect();
-      return r.top >= list.top - 2 && r.bottom <= list.bottom + 2;
-    }, endId);
-    expect(inView).toBe(true);
+    const inView = async (id: string) => {
+      const el = await page.evaluate((eid) => {
+        const node = document.getElementById(eid);
+        if (!node) return "gone";
+        const r = node.getBoundingClientRect();
+        const list = document.getElementById("palette-listbox")!.getBoundingClientRect();
+        const fit = r.top >= list.top - 2 && r.bottom <= list.bottom + 2;
+        return fit ? "fit" : `top ${r.top} / bot ${r.bottom} / list ${list.top}-${list.bottom}`;
+      }, id);
+      return el;
+    };
+    // scrollIntoView is async — wait for it to settle rather than asserting
+    // the exact frame (earlier: flaky under parallel-worker CPU contention).
+    await expect
+      .poll(() => inView(endId), { timeout: 3_000 })
+      .toBe("fit");
     await page.keyboard.press("Home");
     await expect(input).toHaveAttribute("aria-activedescendant", "palette-opt-0");
 
@@ -623,5 +639,83 @@ test.describe("modal focus contract", () => {
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("button", { name: "Send" })).toBeFocused();
+  });
+});
+
+/**
+ * Quick-create menu (the "+" in the sidebar brand row) — plain L2 menu
+ * semantics: aria-haspopup/expanded trigger, real roving focus with arrow
+ * keys, keyboard focus enters the menu on open and returns to the trigger on
+ * close. Guards the Phase 2b rebuild.
+ */
+test.describe("quick-create menu keyboard contract", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test("Open with ArrowDown: focus enters the menu, arrows move, Enter fires, Esc closes to the trigger", async ({
+    page,
+  }) => {
+    await signIn(page);
+
+    const trigger = page.getByRole("button", { name: "Quick create" });
+    await trigger.focus();
+    await page.keyboard.press("ArrowDown");
+
+    const menu = page.locator(".quick-menu");
+    await expect(menu).toBeVisible();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+
+    // Keyboard focus moved into the menu, on the first item.
+    await expect(menu.locator(".quick-item").first()).toBeFocused();
+
+    // ArrowDown moves to the second item; ArrowUp returns to the first;
+    // Enter fires the create action — "New contact", whose bus event the
+    // Clients page listens for, so the modal opens.
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.locator(".quick-item").nth(1)).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await expect(menu.locator(".quick-item").first()).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".modal")).toBeVisible();
+
+    // The menu closed when the action ran; Esc now restores focus to the
+    // trigger.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".modal")).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});
+
+/**
+ * UserMenu profile popover — L2 popover, NOT a modal (no focus trap by
+ * design). Guards the keyboard/click-open path: focus moves INTO the popover
+ * on open and returns to the avatar trigger on Esc/outside close. Hover-open
+ * never touches focus (that behavior is the visible trigger + popover, hard to
+ * assert, so we guard the deterministic keyboard path).
+ */
+test.describe("user menu popover focus contract", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test("Click-open moves focus into the popover; Esc returns it to the avatar trigger", async ({ page }) => {
+    await signIn(page);
+
+    const trigger = page.getByRole("button", { name: /Open profile/ });
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+
+    const pop = page.locator("#user-popover");
+    await expect(pop).toBeVisible();
+    await expect(pop).toHaveAttribute("role", "dialog");
+
+    // Focus moved into the popover container (initial focus target).
+    const focusIn = await page.evaluate(() =>
+      document.querySelector("#user-popover")!.contains(document.activeElement)
+    );
+    expect(focusIn).toBe(true);
+
+    // Esc closes and restores focus to the trigger.
+    await page.keyboard.press("Escape");
+    await expect(pop).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 });

@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Modal } from "./Modal";
 
 /**
- * §23.1 confirm-before-destructive: an explicit confirmation step that names
+ * §5.1 confirm-before-destructive: an explicit confirmation step that names
  * what's about to happen in plain language, never a bare "Are you sure?".
- * §23.2: the confirm button shows its in-flight state.
+ * §5.3 visibility of system status: the confirm button shows its in-flight
+ * state (inline spinner + working label) and, if onConfirm throws, an inline
+ * error explains what went wrong instead of silently swallowing the rejection
+ * and leaving the dialog open with no feedback.
  */
 export function ConfirmDialog({
   open,
@@ -24,12 +27,21 @@ export function ConfirmDialog({
   danger?: boolean;
 }) {
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const run = async () => {
     setPending(true);
+    setError(null);
     try {
       await onConfirm();
       onClose();
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Something went wrong. Try again.");
+      if (!(e instanceof Error) || !e.message) {
+        // The bare-throw path (e.g. a DB constraint surfacing as Error) loses
+        // its shape, but the inline message already tells the user what to do.
+        console.error(e);
+      }
     } finally {
       setPending(false);
     }
@@ -38,6 +50,11 @@ export function ConfirmDialog({
   return (
     <Modal open={open} onClose={onClose} title={title} width={460}>
       <p className="confirm-body">{body}</p>
+      {error && (
+        <p className="field-error-message" role="alert">
+          {error}
+        </p>
+      )}
       <div className="modal-actions">
         <button type="button" className="btn btn-ghost" onClick={onClose} disabled={pending}>
           Cancel

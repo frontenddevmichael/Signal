@@ -44,7 +44,24 @@ Phases:
   hardcoded hue (index.css:3432), kbd shadow now `--border-default` (was hardcoded rgba),
   `EmptyState.tsx` now imports `IconClients` (was duplicated glyph with round join), `Toasts.tsx`
   rewritten (close = `icon-btn toast-close`, aria-label, 12×12 IconClose).
-- **2b overlays** — PENDING: Modal, ConfirmDialog, CommandPalette, UserMenu, QuickCreate.
+- **2b overlays** — DONE (2026-08-16): Modal (rewritten, focus contract preserved: focus in/
+  restore, Tab trap, Esc, body scroll-lock, `onCloseRef` to survive background re-renders, backdrop
+  click-close without a redundant `role="presentation"`), ConfirmDialog (REBUILT with the real-bug
+  fix — a throwing `onConfirm` now surfaces an inline `role="alert"` error per §5.3 instead of an
+  unhandled rejection leaving the dialog open with no feedback), CommandPalette (CSS-only fix: the
+  input's `outline:none` out-ranked the global `:focus-visible` ring, so the input row now signals
+  focus with a beacon underline via `:focus-within` — matches even programmatic focus), UserMenu
+  (REBUILT: keyboard/click open moves focus INTO the popover, hover open never touches focus;
+  focus restores to the avatar trigger on Esc/outside close via the existing `openedByFocus`
+  distinction), QuickCreate (REBUILT with real menu semantics: `aria-haspopup`/`aria-expanded`,
+  ArrowUp/Down/Home/End roving focus, focus into the menu on open + restore on close, `.quick-item.active`
+  surface lift under the global ring). New permanent Playwright guards: quick-create menu keyboard
+  contract + user-menu popover focus contract (34 Playwright total incl. smoke + regression).
+  Verified: tsc clean, 187/187 vitest, vite build green, oxlint 0/0, Playwright 30/30.
+  Debugged an environment flake during verification: the `End`-key assertion raced Convex
+  data-loading (pressed while only the 8 action rows existed → active capped at 7); fixed in the
+  spec with an option-count wait before End, plus the scroll-into-view assertion now polls instead
+  of asserting one frame (both were test-race fixes, no product defect).
 - **2c shell** — PENDING: Shell, App.
 - **2d screens** — PENDING: ClientsList, ClientDetail, Invoices, InvoiceDetail, Calendar, FollowUps, Inbox.
 - **2e settings/integrations/forms** — PENDING: SignIn, ContactForm, InvoiceForm, MergeDialog, projects, notes, meetings, gmail, integrations, settings, portal, mini-calendar.

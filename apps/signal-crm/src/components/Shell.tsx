@@ -325,10 +325,30 @@ export function Shell() {
 /**
  * Quick-create — a "+" in the brand row opening the same create actions the
  * command palette offers, one click from anywhere in the app.
+ *
+ * Real menu semantics (§5.8/HCI): the trigger carries aria-haspopup +
+ * aria-expanded, ArrowUp/ArrowDown cycle the items (roving tabindex via
+ * aria-activedescendant is overkill for two always-identical items — focus
+ * moves to the active item instead), keyboard focus enters the first item on
+ * open and returns to the trigger on close, Enter/Space activate, Esc closes.
  */
+const QUICK_ITEMS: { event: string; label: string; hint?: string }[] = [
+  { event: NEW_CONTACT_EVENT, label: "New contact", hint: "⌘N" },
+  { event: NEW_INVOICE_EVENT, label: "New invoice" },
+];
+
 function QuickCreate() {
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  // Whether the menu was opened from the keyboard (Enter/Space on the trigger
+  // or ArrowDown) — only then does close restore focus to the trigger. A
+  // mouse-click open already has focus on the trigger, but restoring is
+  // harmless; hover is not a thing here (click-only), so this stays simple:
+  // focus returns to the trigger whenever the menu closes.
+  const restoreRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -346,32 +366,90 @@ function QuickCreate() {
     };
   }, [open]);
 
+  // On open, focus the active item (deferred past the mount).
+  useEffect(() => {
+    if (open) {
+      const t = window.setTimeout(() => itemRefs.current[active]?.focus(), 0);
+      return () => window.clearTimeout(t);
+    }
+  }, [open, active]);
+
+  // Restore focus to the trigger whenever the menu closes.
+  useEffect(() => {
+    if (!open && restoreRef.current) {
+      triggerRef.current?.focus();
+    }
+  }, [open]);
+
+  const openMenu = () => {
+    restoreRef.current = true;
+    setActive(0);
+    setOpen(true);
+  };
+
   const run = (eventName: string) => {
+    restoreRef.current = true;
     setOpen(false);
     window.dispatchEvent(new CustomEvent(eventName));
+  };
+
+  const onMenuKey = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => (a + 1) % QUICK_ITEMS.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => (a - 1 + QUICK_ITEMS.length) % QUICK_ITEMS.length);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActive(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActive(QUICK_ITEMS.length - 1);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
   };
 
   return (
     <div ref={ref} className="quick-create">
       <button
+        ref={triggerRef}
         type="button"
         className="icon-btn quick-add"
         aria-label="Quick create"
+        aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openMenu();
+          }
+        }}
       >
         <IconPlus />
       </button>
       {open && (
-        <div className="quick-menu" role="menu" aria-label="Quick create">
+        <div className="quick-menu" role="menu" aria-label="Quick create" onKeyDown={onMenuKey}>
           <div className="quick-menu-inner">
-            <button type="button" className="quick-item" role="menuitem" onClick={() => run(NEW_CONTACT_EVENT)}>
-              New contact
-              <kbd className="kbd">⌘N</kbd>
-            </button>
-            <button type="button" className="quick-item" role="menuitem" onClick={() => run(NEW_INVOICE_EVENT)}>
-              New invoice
-            </button>
+            {QUICK_ITEMS.map((item, i) => (
+              <button
+                key={item.event}
+                ref={(el) => {
+                  itemRefs.current[i] = el;
+                }}
+                type="button"
+                className={`quick-item${i === active ? " active" : ""}`}
+                role="menuitem"
+                tabIndex={i === active ? 0 : -1}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => run(item.event)}
+              >
+                {item.label}
+                {item.hint && <kbd className="kbd">{item.hint}</kbd>}
+              </button>
+            ))}
           </div>
         </div>
       )}
