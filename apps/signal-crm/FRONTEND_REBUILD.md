@@ -163,7 +163,18 @@ Phases:
   were already closed across 2a–2e (documented above); this pass re-verified them.
   Verified: `tsc --noEmit` + convex tsc clean, 187/187 vitest, oxlint 0 errors,
   vite build green, Playwright 36/36.
-- **Phase 4 verification + commit** — PENDING: full suite + FRONTEND_REBUILD.md final.
+- **Phase 4 verification + commit** — DONE (2026-08-16): the delete-and-rebuild is
+  complete. Final verification across all phases: `tsc --noEmit` + convex tsc clean,
+  187/187 vitest (24 files incl. standalone Date-only `format`, `timezones`, `fuzzy`,
+  `calendarLogic`, `undoLogic`, `sanitizeHtml`), oxlint 0 errors (1 pre-existing
+  `convex/sessions.ts` no-useless-catch warning, backend untouched), vite build green,
+  Playwright 36/36 (smoke + mobile-regression incl. Phase 2b overlay contracts, Phase 2d
+  screen contracts, Phase 2e keyboard contracts). Every one of the 27 audit defects is
+  closed except three confirmed/deliberate flags: `formatMoney` en-NG (Nigeria primary
+  market), Timeline `dangerouslySetInnerHTML` (self-trust editor boundary; sanitizer
+  module exists for webhook content), and the `settings-section` radius /
+  `.chip` 999px design confirmations. All committed on `feat/quiet-future-os-rebuild`:
+  `ceb53f3` 2a · `4abf252` 2b · `accc7b5` 2c · `704d394` 2d · `2214445` 2e · `fe270a1` 3.
 
 Phase 2a verified: `tsc --noEmit` clean, vitest green, `vite build` green, `oxlint` 0/0, Playwright 28/28,
 both themes DOM-probed against the token ladder (dark: beacon inverts to light-fill; light: beacon dark-fill/light-text;
