@@ -250,12 +250,16 @@ correctly; no counts exist on the test account to photograph). All 7 labels
 render in light; toggled back to dark and confirmed the active register
 re-inverted (`rgb(24,25,26)` = dark `--surface-3`).
 
-**Remaining open flags after close-out:** the Portal USD hardcode (backend
-`convex/portal.ts` doesn't return `currency` — render fix requires a
-backend-data change, out of scope for the visual rebuild; flagged in the 2d
-entry), `formatMoney` en-NG (deliberate, documented), and the radius-scale
-design confirmations (`.chip` 999px, `settings-section` 8px). Everything else
-from the Phase 1 inventory is either rebuilt or resolved.
+**Remaining open flags after close-out:** `formatMoney` en-NG (deliberate,
+documented) and the radius-scale design confirmations (`.chip` 999px,
+`settings-section` 8px). Everything else from the Phase 1 inventory is either
+rebuilt or resolved. The Portal USD hardcode was closed in the follow-up
+(`75a830c`): `convex/portal.ts` `data` now returns each invoice's `currency`,
+and `Portal.tsx` renders through `formatMoney(inv.total, inv.currency)`
+instead of the hardcoded USD `Intl.NumberFormat` — verified live end-to-end
+(minted a link for a client with a NGN invoice; portal renders `₦7,500.00`
+for the NGN invoice and `$1,250.00` for the USD one, no `$7,500.00`
+anywhere). tsc clean (app + convex), 206/206 vitest.
 
 ## Audit result (2026-08-15, three parallel passes)
 
