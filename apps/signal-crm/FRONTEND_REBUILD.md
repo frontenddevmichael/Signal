@@ -60,6 +60,18 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
   Verified: tsc clean, 206/206 vitest, 42/42 Playwright incl. new `form-focus.spec.ts`
   (2px beacon ring asserted via focusVisible in BOTH modes, halo box-shadow absent).
   Committed on `feat/quiet-future-os-rebuild`.
+- **2a-iii toasts / loading tiers / empty states / status register — DONE
+  (2026-08-16)**: rebuilt `Toasts.tsx`, `Loader.tsx`, `EmptyState.tsx`, and the
+  `.toast*` block, `§3.3` loading tiers (spinner/skeleton/skeleton-stagger/
+  loader-page + keyframes), `.empty-state` block, and the full §1.1 status
+  dot register fresh from tokens. Behavior preserved (toast cap 4 + 5s
+  auto-dismiss + aria-live/role=status + undo + close icon-btn; loader
+  signal-bar mark + role=status; empty-state composition). One substantive
+  token change: spinner's `border-top-color` now uses `var(--beacon)`
+  (doc-literal §3.3 "beacon-colored"; was `--text-primary`, identical value
+  since `--beacon: var(--text-primary)` — clarifying, not behavioral).
+  Verified: tsc clean, 206/206 vitest, 42/42 Playwright. Committed on
+  `feat/quiet-future-os-rebuild`.
 - **2a-ii chrome primitives — DONE (2026-08-16)**: rebuilt the button register
   (`.btn` + primary/ghost/danger/danger-ghost/`-sm`), `.icon-btn`, `.kbd`,
   `.chip`, `.card-hover` gate, `.avatar`/`.avatar-lg`, `.tag-chip`,

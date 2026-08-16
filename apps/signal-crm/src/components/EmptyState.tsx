@@ -3,11 +3,11 @@ import { IconClients } from "./Icons";
 
 /**
  * §3.5 — an empty state is a real composition, not a placeholder line: an
- * icon tile, a 510-weight headline, one line of supporting copy at tertiary,
- * and a clear next action. It should match the quality bar of a populated
- * screen so the *absence* of data still reads as designed. Distinct from
- * error states (flat, quiet — see §3.5): this one is the opportunity, not
- * the problem.
+ * icon tile, a 510-weight headline, one line of tertiary copy, and a clear
+ * next action. The absence of data reads as designed because the empty
+ * frame matches the populated frame's quality bar. Deliberately distinct
+ * from error states (flat, quiet, never illustrated — §3.5): this is the
+ * opportunity, not the problem.
  */
 export function EmptyState({
   title,

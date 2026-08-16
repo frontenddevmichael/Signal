@@ -5,10 +5,13 @@ import type { Toast } from "./useToasts";
 import { IconAlert, IconCheck, IconClose } from "../Icons";
 
 /**
- * §3.2 — one-off action confirmations, never ongoing state. Toasts sit at
- * --surface-4 with a --border-default edge and popover shadow (solid, per
- * the flagged §1.4 deviation); the icon SHAPE (check vs alert) carries the
- * meaning — never hue. Undo stays wherever reversible (§5.2).
+ * §3.2 — one-off action confirmations, never ongoing state. Toasts are the
+ * one flagged exception to glass: they sit solid on --surface-4 (a single
+ * line of text has no inner card to carry). The icon SHAPE (check vs alert)
+ * carries the meaning — never hue. Undo rides every reversible action's
+ * toast (§5.2); the region is a polite live region; each toast is
+ * role="status". Capped at four visible; auto-dismisses after 5s so the
+ * status stays actionable but never stacks into noise.
  */
 export function Toasts({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -17,8 +20,8 @@ export function Toasts({ children }: { children: ReactNode }) {
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-    const t = timeouts.current.get(id);
-    if (t) clearTimeout(t);
+    const timer = timeouts.current.get(id);
+    if (timer) clearTimeout(timer);
     timeouts.current.delete(id);
   }, []);
 
@@ -26,7 +29,6 @@ export function Toasts({ children }: { children: ReactNode }) {
     (t: Omit<Toast, "id">) => {
       const id = nextId.current++;
       setToasts((prev) => [...prev.slice(-3), { ...t, id }]);
-      // §5.3 — status visible long enough to act on.
       const timer = setTimeout(() => dismiss(id), 5000);
       timeouts.current.set(id, timer);
     },

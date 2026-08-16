@@ -508,13 +508,15 @@ select:disabled {
   }
 }
 
-/* ---- §3.3 Loading hierarchy — three tiers, not interchangeable ---- */
+/* ---- §3.3 Loading hierarchy — three tiers, not interchangeable. Tier 1
+   skeletons for data-shaped surfaces, tier 2 inline spinners for button-
+   level actions, tier 3 the full-page loader — never swap them. ---------- */
 /* Tier 2: inline spinner, small, beacon-colored, inside the button. */
 .spinner {
   width: 16px;
   height: 16px;
   border: 2px solid var(--border-default);
-  border-top-color: var(--text-primary);
+  border-top-color: var(--beacon);
   border-radius: 50%;
   animation: spin 700ms linear infinite;
   flex: none;
@@ -637,8 +639,8 @@ select:disabled {
 
 /* ---- §3.5 Empty vs error states ------------------------------- */
 /* An empty state is a real composition: icon tile, 510-weight headline,
-   tertiary body, a clear action — the absence of data still reads as
-   designed. Distinct from error states (flat, quiet — never illustrated). */
+   tertiary body, a clear action — the absence of data reads as designed.
+   Distinct from error states (flat, quiet — never illustrated, §3.5). */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -743,9 +745,9 @@ select:disabled {
   color: var(--status-critical);
 }
 
-/* ---- §1.1 status — the monochrome intensity register ----------------
-   Text tone + weight are the load-bearing signal; a dot register carries
-   the shape (filled = resolved/attention, outline = in-flight, dimmed =
+/* ---- §1.1 status — the monochrome intensity register. Text tone +
+   weight are the load-bearing signal; the dot register carries shape
+   (filled = resolved/attention, outline = in-flight, dimmed outline =
    terminal). Hue reinforces the DOT only — text never takes hue. */
 .status {
   display: inline-flex;
@@ -1986,7 +1988,12 @@ select:disabled {
   padding: 32px 24px 64px;
 }
 
-/* ---- §3.2 Toasts ---------------------------------------------- */
+/* ---- §3.2 Toasts — one-off action confirmations, never ongoing state.
+   Region is a polite live region; each toast is role=status. Toasts stay
+   solid surface-4 (the flagged §1.4 deviation: a single line of text has
+   no inner card to carry); the icon SHAPE carries the meaning, never hue.
+   The close visual is a compact 24px; the §23.8 floor pads the real tap
+   target to 44px on mobile. -------------------------------- */
 .toast-region {
   position: fixed;
   bottom: 24px;
@@ -2006,8 +2013,6 @@ select:disabled {
   }
 }
 
-/* Toasts stay solid surface-4 (flagged deviation, §1.4 — a single line of
-   text has no inner card to carry). The icon shape carries the meaning. */
 .toast {
   display: flex;
   align-items: center;
@@ -2047,8 +2052,6 @@ select:disabled {
   color: var(--text-primary);
 }
 
-/* Close control — the compact 24px visual; the touch floor below is the
-   real tap target on mobile (§5.8). */
 .toast-close {
   width: 24px;
   height: 24px;

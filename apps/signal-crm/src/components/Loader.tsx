@@ -1,7 +1,9 @@
 /**
- * §22.13 tier-3 loader — reserved for full-page/first-load moments.
- * §7 — the signal-bar mark (same drawing as the favicon) with a quiet
- * monochrome pulse; the Beacon ring is retired (§1.6).
+ * §3.3 tier-3 loader — reserved for full-page/first-load moments only
+ * (initial app load, slow backfills); never for minor fetches.
+ * §7 — the signal-bar mark, same drawing as the favicon, with a quiet
+ * monochrome pulse (opacity-only, honors reduced motion; the retired
+ * Beacon ring is gone). The mark is aria-hidden; the region announces.
  */
 export function Loader({ label = "Signal" }: { label?: string }) {
   return (
