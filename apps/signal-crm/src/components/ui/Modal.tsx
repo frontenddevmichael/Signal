@@ -3,22 +3,24 @@ import type { ReactNode } from "react";
 import { IconClose } from "../Icons";
 
 /**
- * §1.4 L3 modal — a frosted glass shell (.modal) carrying a solid content card
- * (.modal-inner) so no text ever sits on a blurred surface. The backdrop is a
- * click-to-close scrim; the dialog itself stops propagation.
+ * §1.4 L3 modal — a frosted glass shell (.modal) carrying a solid content
+ * card (.modal-inner) so no text ever sits on a blurred surface. The
+ * backdrop is a click-to-close scrim (mousedown, target-checked so a drag
+ * that starts inside the dialog can't close it); the dialog stops
+ * propagation. width sets the card's max-width.
  *
  * Focus contract (guarded by tests/mobile-regression "modal focus contract"):
  * - Focus moves into the dialog on open (the container itself, so screen
- *   readers announce the modal via aria-modal + aria-label).
- * - Tab / Shift+Tab cycle inside the dialog (first → last, wrapped).
+ *   readers announce it via aria-modal + aria-label).
+ * - Tab / Shift+Tab cycle within the dialog (first → last, wrapped).
  * - Escape closes. Body scroll locks while open.
  * - Focus RESTORES to the element that opened the dialog on close.
  * - The keydown effect depends ONLY on [open]: callers pass inline closures
- *   (`onClose={() => setX(false)}`) — if onClose were a dependency, ANY parent
- *   re-render (e.g. a reactive Convex query update) would tear down and re-run
- *   the effect, restoring focus to the trigger and re-focusing the dialog,
- *   ripping focus out of the field the user is typing in. The ref keeps Escape
- *   wired to the latest closure without that churn.
+ *   (`onClose={() => setX(false)}`) — if onClose were a dependency, ANY
+ *   parent re-render (e.g. a reactive Convex query update) would tear down
+ *   and re-run the effect, restoring focus to the trigger and re-focusing
+ *   the dialog — ripping focus out of the field the user is typing in. The
+ *   ref keeps Escape wired to the latest closure without that churn.
  */
 export function Modal({
   open,

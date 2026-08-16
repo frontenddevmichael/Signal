@@ -7,21 +7,27 @@ import { bestFieldScore } from "../lib/fuzzy";
 import { IconCommand, IconInvoices, IconPlus, IconSearch } from "./Icons";
 
 /**
- * §2.4 — the command palette. One of Linear's most recognizable patterns and
- * the single strongest "considered software" signal in the app: jump to any
- * client, project, or invoice, or run a top-level action, all from the
- * keyboard. Popover elevation per §1.4; kbd hints per §2.5.
+ * §2.4 — the command palette. Jump to any client, project, or invoice, or
+ * run a top-level action, all from the keyboard. Popover elevation per
+ * §1.4; kbd hints per §2.5 (device-adaptive footer: the arrow hints swap
+ * for a search cue under a coarse primary pointer).
  *
- * Create actions communicate through a tiny window-event bus so the page that
- * owns the modal (ClientsList / InvoicesList) can open it — the palette stays
- * decoupled from page state.
+ * Combobox pattern (guarded by tests/mobile-regression "command palette"):
+ * - The input is a combobox with aria-activedescendant pointing at the
+ *   active option (screen readers follow arrow navigation).
+ * - Group labels are role="group" wrappers, so the listbox only contains
+ *   options/groups; the empty state lives OUTSIDE as role="status".
+ * - The dialog is aria-modal with a real focus trap; focus restores to the
+ *   trigger on close; the active row scrolls into view; Home/End clamp.
  *
- * A11y/HCI (refactor): proper combobox pattern — the input is a combobox with
- * aria-activedescendant pointing at the active option (screen readers follow
- * arrow navigation), group labels are role="group" wrappers so the listbox
- * only contains options/groups, the empty state lives OUTSIDE the listbox as
- * role="status", the dialog is aria-modal with a real focus trap, focus is
- * restored to the trigger on close, and the active row scrolls into view.
+ * §2.4 fuzzy ranking: every candidate is scored (not substring-filtered) so
+ * typos and partial matches surface the right row, ordered best-first with
+ * a stable sort; actions append below with their own fuzzy filter. With no
+ * query, actions come first in data order.
+ *
+ * Create actions communicate through a tiny window-event bus so the page
+ * that owns the modal (ClientsList / InvoicesList) can open it — the
+ * palette stays decoupled from page state.
  */
 export const NEW_CONTACT_EVENT = "signal:new-contact";
 export const NEW_INVOICE_EVENT = "signal:new-invoice";
@@ -51,7 +57,6 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
   // Where focus was when the palette opened — restored on close.
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -144,9 +149,6 @@ export function CommandPalette() {
   const items: Item[] = useMemo(() => {
     const q = query.trim();
 
-    // §2.4 fuzzy ranking: every candidate is scored (not substring-filtered)
-    // so typos and partial matches surface the right row, and the list is
-    // ordered best-first instead of data-order. A null score = no match.
     const score = (...fields: (string | undefined | null)[]) =>
       q ? bestFieldScore(q, fields) : 0;
 
@@ -188,21 +190,10 @@ export function CommandPalette() {
       });
     }
 
+    // Nav parity — every rail destination is reachable from the keyboard.
     const actions: Item[] = [
-      {
-        id: "a-home",
-        label: "Clients",
-        sub: "All clients",
-        group: "Actions",
-        run: () => navigate("/"),
-      },
-      {
-        id: "a-invoices",
-        label: "Invoices",
-        sub: "All invoices",
-        group: "Actions",
-        run: () => navigate("/invoices"),
-      },
+      { id: "a-home", label: "Clients", sub: "All clients", group: "Actions", run: () => navigate("/") },
+      { id: "a-invoices", label: "Invoices", sub: "All invoices", group: "Actions", run: () => navigate("/invoices") },
       {
         id: "a-new-contact",
         label: "New contact",
@@ -225,27 +216,9 @@ export function CommandPalette() {
           window.setTimeout(() => window.dispatchEvent(new CustomEvent(NEW_INVOICE_EVENT)), 0);
         },
       },
-      {
-        id: "a-calendar",
-        label: "Calendar",
-        sub: "Deadlines, dues, meetings",
-        group: "Actions",
-        run: () => navigate("/calendar"),
-      },
-      {
-        id: "a-inbox",
-        label: "Inbox",
-        sub: "Unmatched messages",
-        group: "Actions",
-        run: () => navigate("/inbox"),
-      },
-      {
-        id: "a-followups",
-        label: "Follow-ups",
-        sub: "Due reminders",
-        group: "Actions",
-        run: () => navigate("/followups"),
-      },
+      { id: "a-calendar", label: "Calendar", sub: "Deadlines, dues, meetings", group: "Actions", run: () => navigate("/calendar") },
+      { id: "a-inbox", label: "Inbox", sub: "Unmatched messages", group: "Actions", run: () => navigate("/inbox") },
+      { id: "a-followups", label: "Follow-ups", sub: "Due reminders", group: "Actions", run: () => navigate("/followups") },
       {
         id: "a-settings",
         label: "Settings",
@@ -255,8 +228,8 @@ export function CommandPalette() {
       },
     ];
     // With a query: rank rows best-first (stable sort keeps data order for
-    // ties), then append the matching actions. With no query: actions first,
-    // rows in data order — the pre-fuzzy behavior.
+    // ties), then append the matching actions. With no query: actions
+    // first, rows in data order — the pre-fuzzy behavior.
     if (!q) return [...actions, ...rows];
     const ranked = [...rows].sort((a, b) => (b as Item & { _score: number })._score - (a as Item & { _score: number })._score);
     const matchingActions = actions.filter((a) => bestFieldScore(q, [a.label, a.sub]) !== null);
@@ -338,7 +311,6 @@ export function CommandPalette() {
             <kbd className="kbd">esc</kbd>
           </div>
           <div
-            ref={listRef}
             className="palette-list"
             role="listbox"
             id="palette-listbox"

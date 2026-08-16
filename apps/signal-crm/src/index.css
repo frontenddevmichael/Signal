@@ -1128,13 +1128,13 @@ select:disabled {
 }
 
 .quick-menu {
+  /* L2 glass SHELL — items rest on the solid .quick-menu-inner card. */
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   z-index: 40;
   min-width: 180px;
   padding: 6px;
-  /* L2 glass SHELL — items rest on the solid .quick-menu-inner card. */
   border-radius: var(--radius-md);
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -1281,13 +1281,13 @@ select:disabled {
 }
 
 .user-popover {
+  /* L2 glass SHELL — content rests on the solid .user-pop-inner card. */
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
   z-index: 40;
   width: 300px;
   padding: 8px;
-  /* L2 glass SHELL — content rests on the solid .user-pop-inner card. */
   border-radius: var(--radius-md);
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -1297,7 +1297,6 @@ select:disabled {
   animation: pop-in var(--duration-fast) var(--ease-signal);
 }
 
-/* the solid card that carries every label inside the popover shell */
 .user-pop-inner {
   display: flex;
   flex-direction: column;
@@ -1507,7 +1506,6 @@ select:disabled {
   animation: pop-in var(--duration-fast) var(--ease-signal);
 }
 
-/* the solid content card inside the palette glass shell */
 .palette-panel {
   display: flex;
   flex-direction: column;
@@ -2879,7 +2877,10 @@ select:disabled {
   background: var(--beacon-faint);
 }
 
-/* ---- §1.4 modals — surface-4 + hairline edge + soft black shadow ----- */
+/* ---- §1.4 modals — L3 glass shell, never a payload. The frosted rim is
+   atmospheric only; every label sits on the solid .modal-inner card, per
+   the hard rule that text never rests on a blurred surface. Backdrop is a
+   dim scrim; the dialog enters with the panel-scale ease. -------- */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -2892,9 +2893,6 @@ select:disabled {
 }
 
 .modal {
-  /* L3 glass SHELL — the frosted rim is atmospheric; all text rests on
-     the solid .modal-inner card inside (§1.4 hard rule: text never sits
-     directly on a blurred surface). */
   display: flex;
   flex-direction: column;
   padding: 8px;
@@ -2922,7 +2920,6 @@ select:disabled {
 }
 
 .modal-inner {
-  /* the solid content card inside the glass shell — every label sits here. */
   flex: 1;
   min-height: 0;
   overflow: auto;

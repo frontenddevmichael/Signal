@@ -72,6 +72,25 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
   since `--beacon: var(--text-primary)` — clarifying, not behavioral).
   Verified: tsc clean, 206/206 vitest, 42/42 Playwright. Committed on
   `feat/quiet-future-os-rebuild`.
+- **2b overlays — DONE (2026-08-16)**: delete-and-rebuilt all five L2/L3
+  floating surfaces from the tokens, preserving every focus contract
+  (guarded by the existing Playwright overlay specs): `Modal.tsx` (L3 glass
+  shell + solid `.modal-inner`, aria-modal/labeled dialog, Tab trap,
+  Escape, body scroll-lock, focus restore, `onCloseRef` so background
+  re-renders can't rip focus), `ConfirmDialog.tsx` (§5.1 plain-language
+  confirm + pending spinner + throwing-onConfirm inline `role="alert"`),
+  `CommandPalette.tsx` (combobox ARIA + activedescendant, trap + restore,
+  Home/End, scroll-into-view, fuzzy ranking, nav-parity actions,
+  device-adaptive footer — dropped the dead `listRef`), `UserMenu.tsx`
+  (popover `openedByFocus` distinction, focus move/restore on
+  keyboard/click open, hover never touches focus), QuickCreate in
+  `Shell.tsx` (menu semantics, roving tabindex, focus into menu + restore,
+  click-outside/Esc). CSS: rebuilt the four glass shells
+  (`.modal`/`.quick-menu`/`.user-popover`/`.command-palette`) + their solid
+  inner cards + `.palette-panel`/`.palette-input-row` fresh from tokens,
+  shell-not-payload per §1.4. Verified: tsc clean, 206/206 vitest, 42/42
+  Playwright (all overlay contracts pass). Committed on
+  `feat/quiet-future-os-rebuild`.
 - **2a-ii chrome primitives — DONE (2026-08-16)**: rebuilt the button register
   (`.btn` + primary/ghost/danger/danger-ghost/`-sm`), `.icon-btn`, `.kbd`,
   `.chip`, `.card-hover` gate, `.avatar`/`.avatar-lg`, `.tag-chip`,

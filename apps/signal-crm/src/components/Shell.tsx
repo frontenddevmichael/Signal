@@ -343,11 +343,10 @@ function QuickCreate() {
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  // Whether the menu was opened from the keyboard (Enter/Space on the trigger
-  // or ArrowDown) — only then does close restore focus to the trigger. A
-  // mouse-click open already has focus on the trigger, but restoring is
-  // harmless; hover is not a thing here (click-only), so this stays simple:
-  // focus returns to the trigger whenever the menu closes.
+  // Menu semantics: trigger is aria-haspopup/aria-expanded, items are
+  // menuitems with roving tabindex; ArrowDown/Up/Home/End move the active
+  // item, Enter/Space/click run it, Esc or outside-click closes. Focus
+  // moves into the menu on open and RESTORES to the trigger on any close.
   const restoreRef = useRef(false);
 
   useEffect(() => {

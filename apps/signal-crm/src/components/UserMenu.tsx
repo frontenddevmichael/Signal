@@ -13,14 +13,16 @@ const THEME_ICON = { system: IconMonitor, light: IconSun, dark: IconMoon } as co
 /**
  * Sidebar user card — the avatar is the trigger; hovering it (desktop) or
  * clicking it (touch/keyboard) opens a profile popover with the detail-driven
- * account info: email (copyable), timezone (§20.8 — it drives date rendering),
- * theme, active sessions, and the account actions. The close is delayed so a
+ * account info: email (copyable), timezone (§20.8 — drives date rendering),
+ * theme, active sessions, and the account actions. Close is delayed so a
  * mouse moving from the trigger into the popover doesn't flicker it shut.
  *
- * Focus behavior (L2 popover, NOT a modal — no focus trap). When opened by
- * keyboard or click, focus moves INTO the popover so Tab starts inside it, and
- * restores to the trigger on close. Hover-open/hover-close never move focus —
- * the trigger had no focus to restore and yanking the keyboard would be wrong.
+ * Focus behavior (L2 popover, NOT a modal — no trap, not aria-modal). When
+ * opened by keyboard or click, focus moves INTO the popover so Tab starts
+ * inside it, and restores to the trigger on close. Hover-open/hover-close
+ * never move focus — the trigger had no focus to restore and yanking the
+ * keyboard would be wrong. The openedByFocus flag distinguishes the two
+ * open paths (guarded by tests/mobile-regression "user menu popover").
  */
 export function UserMenu({
   themePreference,
@@ -38,17 +40,15 @@ export function UserMenu({
   const popRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<number | null>(null);
-  // Whether the popover was opened by keyboard/click (not hover) — only then
-  // does open move focus into it and close restore focus to the trigger.
   const openedByFocus = useRef(false);
 
   const name = myUser?.name ?? "Account";
   const email = myUser?.email ?? null;
   const timezone = myUser?.timezone ?? "UTC";
 
-  // Outside click + Esc close; mousedown so a click that opens doesn't
-  // immediately close (the trigger is inside ref). Restores focus to the
-  // trigger when the popover was opened by keyboard/click and then closed.
+  // Outside click + Esc close (mousedown so a click that opens doesn't
+  // immediately close — the trigger is inside ref). Restores focus to the
+  // trigger only when the popover was opened by keyboard/click.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -72,7 +72,7 @@ export function UserMenu({
   }, [open]);
 
   // Keyboard/click open: move focus into the popover (deferred past the
-  // mount so the popover is rendered). Hover opens skip this.
+  // mount). Hover opens skip this.
   useEffect(() => {
     if (open && openedByFocus.current) {
       const t = window.setTimeout(() => popRef.current?.focus({ preventScroll: true }), 0);
