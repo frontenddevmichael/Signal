@@ -41,7 +41,9 @@ export function ImportRepoDialog({
   useEffect(() => {
     if (loadedOnce.current) return;
     loadedOnce.current = true;
-    void loadRepos().then(setResult);
+    void loadRepos()
+      .then(setResult)
+      .catch(() => setResult({ repos: [], error: "Could not reach GitHub right now." }));
   }, [loadRepos]);
 
   const repos = result?.repos ?? [];

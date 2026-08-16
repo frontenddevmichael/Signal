@@ -159,9 +159,9 @@ export function MergeDialog({
         message: `Merged into ${mergedName}`,
         undoLabel: "Undo",
         onUndo: () => {
-          void undoMerge({ undoId: res.undoId }).then((r) => {
-            navigate(`/clients/${r.contactId}`);
-          });
+          void undoMerge({ undoId: res.undoId })
+            .then((r) => navigate(`/clients/${r.contactId}`))
+            .catch(() => push({ message: "Could not restore the merged client." }));
         },
       });
       onClose();

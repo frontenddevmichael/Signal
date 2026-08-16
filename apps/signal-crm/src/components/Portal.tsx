@@ -29,10 +29,12 @@ export function Portal() {
   // Redeem once on load — the token is single-use; a replayed link fails here.
   useEffect(() => {
     if (!token || redeemed) return;
-    void redeem({ token }).then((r) => {
-      if (r.ok) setRedeemed(true);
-      else setError(r.reason ?? "invalid");
-    });
+    void redeem({ token })
+      .then((r) => {
+        if (r.ok) setRedeemed(true);
+        else setError(r.reason ?? "invalid");
+      })
+      .catch(() => setError("unavailable"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -66,13 +68,15 @@ export function Portal() {
     return (
       <div role="alert">
         <EmptyState
-          title={error === "already_used" ? "This link has already been used" : "Link expired"}
+          title={error === "already_used" ? "This link has already been used" : error === "unavailable" ? "Portal is unreachable" : "Link expired"}
           body={
             error === "already_used"
               ? "The magic link is single-use by design — request a new one from your freelancer."
-              : error === "expired"
-                ? "The link expired (15-minute window). Ask your freelancer for a fresh one."
-                : "This link isn't valid. Ask your freelancer for a new one."
+              : error === "unavailable"
+                ? "Couldn't reach the portal — check your connection and try opening the link again."
+                : error === "expired"
+                  ? "The link expired (15-minute window). Ask your freelancer for a fresh one."
+                  : "This link isn't valid. Ask your freelancer for a new one."
           }
         />
       </div>

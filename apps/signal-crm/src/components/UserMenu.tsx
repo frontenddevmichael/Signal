@@ -151,9 +151,10 @@ export function UserMenu({
                   aria-label="Copy email"
                   title="Copy email"
                   onClick={() => {
-                    void navigator.clipboard.writeText(email).then(() => {
-                      push({ message: "Email copied" });
-                    });
+                    void navigator.clipboard
+                      .writeText(email)
+                      .then(() => push({ message: "Email copied" }))
+                      .catch(() => push({ message: "Copy failed." }));
                   }}
                 >
                   <IconCopy width={14} height={14} />

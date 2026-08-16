@@ -118,9 +118,9 @@ export function ClientDetail() {
         message: `${contact.name} deleted`,
         undoLabel: "Undo",
         onUndo: () => {
-          void undoDelete({ undoId: res.undoId }).then((r) => {
-            navigate(`/clients/${r.contactId}`);
-          });
+          void undoDelete({ undoId: res.undoId })
+            .then((r) => navigate(`/clients/${r.contactId}`))
+            .catch(() => push({ message: "Could not restore the client." }));
         },
       });
       navigate("/");

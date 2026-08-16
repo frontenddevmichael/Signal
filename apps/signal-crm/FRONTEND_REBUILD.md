@@ -152,7 +152,17 @@ Phases:
     and the mini-calendar arrow assertion was corrected in-spec (ArrowLeft from a row
     start lands on the previous row's col 6 by design; the grid contract uses ArrowUp to
     prove top-row clamping).
-- **Phase 3 HCI pass** — PENDING: StrictMode guards, aria-pressed, focus indicators, no-catch mutations, confirm/undo hardness.
+- **Phase 3 HCI pass** — DONE (2026-08-16; cross-cutting sweep over the 2a–2e work):
+  Closed the final unhandled-rejection class — grep-audited every `.then(` in
+  `src/components`: the reversible-delete/merge Undo callbacks (`ClientDetail`,
+  `MergeDialog`) caught → toast on failure, `ImportRepoDialog.loadRepos` caught →
+  inline error state, `Portal.redeemPortalToken` caught → a distinct "unreachable"
+  reason instead of a misleading "invalid link", `UserMenu` clipboard copy caught.
+  Zero `.then(` without a paired `.catch` remains in the product UI. StrictMode
+  render-phase effects, aria-pressed, focus indicators and confirm/undo hardness
+  were already closed across 2a–2e (documented above); this pass re-verified them.
+  Verified: `tsc --noEmit` + convex tsc clean, 187/187 vitest, oxlint 0 errors,
+  vite build green, Playwright 36/36.
 - **Phase 4 verification + commit** — PENDING: full suite + FRONTEND_REBUILD.md final.
 
 Phase 2a verified: `tsc --noEmit` clean, vitest green, `vite build` green, `oxlint` 0/0, Playwright 28/28,
