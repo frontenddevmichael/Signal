@@ -287,9 +287,11 @@ button {
   font-size: inherit;
 }
 
-/* §22.9 / §4 — 2px beacon focus ring, never default browser outline.
-   Outline follows border-radius (and corner-shape) natively in modern
-   browsers, so no radius declaration is needed here. */
+/* §3.0/§4 — the single 2px beacon focus ring, never the default browser
+   outline. One ring for every control; outline follows border-radius (and
+   corner-shape) natively, so no radius declaration is needed. The scoped
+   interactive register below re-declares it with zero specificity so
+   component rules still win where they need to. */
 :focus-visible {
   outline: 2px solid var(--beacon);
   outline-offset: 2px;
@@ -439,25 +441,28 @@ button {
   margin-left: 8px;
 }
 
-/* ---- Phase B — interaction language (v3 brief §interaction) ---------
-   One press, one disabled, one hover behavior shared by every
-   interactive element — no per-component variants. --------------- */
+/* ---- §3.0 Interaction language — one press, one disabled, one hover
+   behavior shared by every interactive element, no per-component variants.
+   Rebuilt fresh on the registers: pressed = uniform 0.97 scale; disabled =
+   a contrast FLOOR (chrome dims once at 0.6 opacity, text-bearing controls
+   swap to --text-disabled) — never opacity AND token on the same element. */
 
-/* Pressed scale-down — tactile, uniform, never nudges layout. */
+/* Pressed — tactile scale-down, never nudges layout. Inputs and textareas
+   are deliberately absent: they don't press-scale. */
 :where(.btn, .icon-btn, .chip, .quick-action, .nav-item, .tab, .palette-row, .th-btn, .user-trigger, .fact-action, .merge-picker-row, .note-tool, [role="menuitem"]):active:not(:disabled) {
   transform: scale(var(--scale-press));
 }
 
-/* Disabled — a contrast FLOOR via the -disabled token, not compounding
-   opacity. Chrome (borders/icons/bg) dims once at 0.6; text-bearing
-   controls swap to the theme's -disabled token so the floor is
-   deterministic in both modes. Never combine opacity + token. */
+/* Disabled chrome — dims once at 0.6 for chrome-bearing controls. */
 :where(.btn, .icon-btn, .chip, .quick-action, .tab, .nav-item, .palette-row, .th-btn, .note-tool, .merge-picker-row):disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
+/* Disabled text — the token swap for every text-bearing control, in both
+   modes. The old per-control opacity compounds (e.g. `.input:disabled` at
+   opacity 0.5 on top of this) are deleted. */
 .btn:disabled {
   color: var(--text-disabled);
   border-color: var(--border-subtle);
@@ -475,7 +480,6 @@ button {
 }
 
 .input:disabled,
-.textarea:disabled,
 select:disabled {
   color: var(--text-disabled);
   cursor: not-allowed;
@@ -702,8 +706,11 @@ select:disabled {
   vertical-align: middle;
 }
 
-/* States: default → focus (beacon ring) → error (rust border + inline
-   message BELOW the field, never a toast) → disabled (§3.1). */
+/* §3.1 form-field states: default → focus → error → disabled. Rebuilt on
+   the register: focus is the SINGLE 2px beacon ring (the old bespoke halo
+   — border-strong + 3px beacon-faint box-shadow — is deleted, so inputs,
+   selects, and textareas share one focus language). Border-color still
+   transitions for the §3.1 error state. */
 .input {
   min-height: 44px;
   padding: 0 12px;
@@ -712,24 +719,15 @@ select:disabled {
   background: var(--surface-2);
   color: var(--text-primary);
   font-size: 15px;
-  transition: border-color var(--duration-fast) var(--ease-signal),
-    box-shadow var(--duration-fast) var(--ease-signal);
-}
-
-/* §3.1 focus — strong border + a subtle beacon-tint ring, no colored ring. */
-.input:focus {
-  outline: none;
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px var(--beacon-faint);
+  transition: border-color var(--duration-fast) var(--ease-signal);
 }
 
 .input::placeholder {
   color: var(--text-tertiary);
 }
 
-.input:disabled {
-  opacity: 0.5;
-}
+/* Disabled is the register's text-bearing swap (--text-disabled + cursor),
+   declared once at the interaction block — never a compounding opacity. */
 
 /* Error — weight + border strength, never hue (§3.1). */
 .field-error .input {
@@ -2794,7 +2792,10 @@ select:disabled {
   gap: 12px;
 }
 
-.textarea {
+/* Textarea geometry — composes with the .input register (ProjectForm's
+   description field, etc.). Border/background/radius/focus all come from
+   .input; this adds only multi-line geometry. */
+.input.textarea {
   padding: 10px 12px;
   resize: vertical;
   font-family: inherit;

@@ -48,6 +48,19 @@ zero legacy hue/emoji/pagination/TODO; hardcoded hex only in the §3.7 print sty
 entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; screen states
 (Portal role=alert/EmptyState variants, Inbox skeleton, FollowUps per-row pending+spinner).
 
+## Phase 2 rebuild progress (user signed off on the re-audit; literal rebuild, per the law)
+
+- **2a-i forms + control registers — DONE (2026-08-16)**: rebuilt the §3.0 registers
+  (focus/press/disabled) and the §3.1 form controls fresh from tokens. `.input:focus`
+  bespoke halo (border-strong + 3px beacon-faint box-shadow) DELETED — focus is now the
+  single 2px beacon ring via the global register, identical to selects/textareas.
+  `.input:disabled { opacity: 0.5 }` DELETED (it compounded opacity with the
+  --text-disabled swap — the §3.0 never-both violation). Dead `.textarea` class folded
+  into `.input.textarea` geometry (ProjectForm's description field was the only user).
+  Verified: tsc clean, 206/206 vitest, 42/42 Playwright incl. new `form-focus.spec.ts`
+  (2px beacon ring asserted via focusVisible in BOTH modes, halo box-shadow absent).
+  Committed on `feat/quiet-future-os-rebuild`.
+
 ## Audit result (2026-08-15, three parallel passes)
 
 **The v3 "Quiet Future OS" rebuild has ALREADY been executed across the product.** Every one
