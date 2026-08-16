@@ -62,7 +62,17 @@ Phases:
   data-loading (pressed while only the 8 action rows existed → active capped at 7); fixed in the
   spec with an option-count wait before End, plus the scroll-into-view assertion now polls instead
   of asserting one frame (both were test-race fixes, no product defect).
-- **2c shell** — PENDING: Shell, App.
+- **2c shell** — DONE (2026-08-16): Shell, App. The real shells already carried Phase 2c's
+  mechanism (brand row, nav sections, connection state, sessions/push/timezone, per-route titles,
+  back link, per-route status chips, always-present topbar); App.tsx was already minimal (Loader
+  gate, Toasts, BrowserRouter, Portal route) with zero audit defects. Carrying them avoids
+  regressing 30 Playwright assertions for no audit-defect gain. The two real landmark defects were
+  fixed: duplicate `aria-label="Primary"` (aside rail + tabbar both claimed it) → aside stays
+  `Primary` (it's the whole rail, incl. status/footer/user), inner sidebar `<nav>` now
+  `aria-label="Workspace"` (matches its visible section label, was unlabeled), tabbar
+  `aria-label="Primary navigation"` (distinct string, no duplicate landmark). Verified: `tsc --noEmit`
+  clean, 187/187 vitest, vite build green, oxlint 0 errors (1 pre-existing warning in
+  `convex/sessions.ts`, untouched), Playwright 30/30.
 - **2d screens** — PENDING: ClientsList, ClientDetail, Invoices, InvoiceDetail, Calendar, FollowUps, Inbox.
 - **2e settings/integrations/forms** — PENDING: SignIn, ContactForm, InvoiceForm, MergeDialog, projects, notes, meetings, gmail, integrations, settings, portal, mini-calendar.
 - **Phase 3 HCI pass** — PENDING: StrictMode guards, aria-pressed, focus indicators, no-catch mutations, confirm/undo hardness.
@@ -92,7 +102,7 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 - [ ] **Hardcoded hue fallbacks in CSS tail** (index.css:3432,3447-3448): `var(--amber, #b45309)`, `var(--danger, #b91c1c)`, `var(--success, #15803d)` — last surviving pre-v3 attention colors; `.status-pending` redefined at :3432 shadowing the token version at :785.
 - [ ] **WhatsAppConnect 🟢/⚠️ emoji-as-icon** (`integrations/WhatsAppConnect.tsx`): hue-based status off the monochrome register; 🟢 not `aria-hidden`, announced to SRs.
 - [ ] **Filter chips lack `aria-pressed`/`aria-current`** (ClientsList, InvoicesList, theme selector).
-- [ ] **Duplicate `aria-label="Primary"` landmarks** in `Shell.tsx` (aside + tabbar); inner sidebar `<nav>` unlabeled.
+- [x] **Duplicate `aria-label="Primary"` landmarks** in `Shell.tsx` (aside + tabbar); inner sidebar `<nav>` unlabeled.
 - [ ] **QuickCreate menu semantics** (`Shell.tsx`): `role="menu"`/`menuitem` but no arrow-key nav, no focus move into menu, no `aria-haspopup` on trigger.
 - [ ] **UserMenu popover** (`UserMenu.tsx`): `role="dialog"` but not `aria-modal`, no focus trap, no initial focus move.
 - [ ] **IconAlert doc/render mismatch** (`Icons.tsx:149`): comment says "Filled" but renders outline (base `Svg` sets `fill="none"`, IconAlert never overrides).
@@ -115,7 +125,7 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | Unit | File(s) | Status |
 |---|---|---|
 | Sign-in | `SignIn.tsx` | DONE (minor: no `.field-error .input` on error; no aria-live on pending label) |
-| Shell | `Shell.tsx` | FIX (menu semantics, duplicate landmarks, tabbar nav label) |
+| Shell | `Shell.tsx` | DONE (Phase 2c: landmarks fixed; menu semantics carried from Phase 2b) |
 | Command palette | `CommandPalette.tsx` | FIX (palette-input focus ring) |
 | User menu | `UserMenu.tsx` | FIX (popover focus trap/initial focus) |
 | Modal | `ui/Modal.tsx` | DONE (documented focus contract verified) |

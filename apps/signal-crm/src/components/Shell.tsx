@@ -212,7 +212,7 @@ export function Shell() {
           <span>Signal</span>
           <QuickCreate />
         </div>
-        <nav>{nav(false)}</nav>
+        <nav aria-label="Workspace">{nav(false)}</nav>
         <div className="spacer" />
 
         <div className="sidebar-status" aria-label="Status">
@@ -301,7 +301,7 @@ export function Shell() {
       {/* §22.10 — bottom tab bar below 1024px. Settings + Sign out live in
           the sidebar footer on desktop; on touch the sidebar is gone, so
           they get persistent tabbar entries. */}
-      <nav className="tabbar" aria-label="Primary">
+      <nav className="tabbar" aria-label="Primary navigation">
         {nav(true)}
         <NavLink
           to="/settings"
