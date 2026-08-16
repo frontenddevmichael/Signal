@@ -20,14 +20,22 @@ async function signIn(page: import("@playwright/test").Page) {
 
 async function ensureRow(page: import("@playwright/test").Page) {
   const rows = page.locator(".data-table tbody tr");
-  if ((await rows.count()) > 0) return;
-  // Self-sufficient: seed one client if the account has none.
+  // count() doesn't wait — give the table a real window to load before
+  // deciding to seed. Under a loaded dev backend the clients query can take
+  // a few seconds, and a premature count=0 would open a spurious create
+  // dialog and race the row's own wait on the mutation round-trip.
+  try {
+    await rows.first().waitFor({ state: "visible", timeout: 10_000 });
+    return;
+  } catch {
+    // account is empty — seed one client below
+  }
   await page.getByRole("button", { name: "Add client" }).first().click();
   const stamp = Date.now();
   await page.locator("#cf-name").fill(`Touch probe ${stamp}`);
   await page.locator("#cf-company").fill(`Company ${stamp}`);
   await page.getByRole("button", { name: "Add client" }).last().click();
-  await expect(page.locator(".data-table tbody tr").first()).toBeVisible();
+  await expect(page.locator(".data-table tbody tr").first()).toBeVisible({ timeout: 15_000 });
 }
 
 const opacityOf = (locator: import("@playwright/test").Locator) =>

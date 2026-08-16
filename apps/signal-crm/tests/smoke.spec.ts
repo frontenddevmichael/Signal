@@ -36,7 +36,10 @@ test("core Phase 1 flow: contact → note → project → timeline", async ({ pa
   await page.getByLabel("Note body").fill(`Hello from the smoke test ${STAMP}`);
   await page.getByRole("button", { name: "Add note" }).click();
   await expect(page.getByText(`Hello from the smoke test ${STAMP}`)).toBeVisible();
-  await expect(page.getByText("Note added")).toBeVisible();
+  // Toast check gets the suite's 15s convention: under a loaded dev backend
+  // the note mutation can take a few seconds, and the toast's 5s lifetime
+  // otherwise races the default 5s expect window at the boundary.
+  await expect(page.getByText("Note added")).toBeVisible({ timeout: 15_000 });
 
   // Add a project.
   await page.getByRole("tab", { name: "Projects" }).click();
@@ -47,6 +50,6 @@ test("core Phase 1 flow: contact → note → project → timeline", async ({ pa
 
   // Timeline still intact and note body renders through the projection.
   await page.getByRole("tab", { name: "Timeline" }).click();
-  await expect(page.getByText("Note added")).toBeVisible();
+  await expect(page.getByText("Note added")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(`Hello from the smoke test ${STAMP}`)).toBeVisible();
 });
