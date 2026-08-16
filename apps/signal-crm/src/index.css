@@ -322,8 +322,9 @@ button {
   box-shadow: var(--shadow-card);
 }
 
-/* ---- §3.0 Buttons — one register, one behavior per state ---------
-   Pressed/disabled handled by the Phase B interaction block below. */
+/* ---- §3.0 Buttons — one register, one behavior per state. Pressed /
+   disabled come from the interaction registers above (scale-press,
+   disabled floor); hover is per-variant below. -------------------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -343,7 +344,8 @@ button {
   text-decoration: none;
 }
 
-/* Primary — full-contrast surface; the label carries 590 weight (§1.2). */
+/* Primary — full-contrast beacon surface; the label carries 590 (§1.2).
+   Hover steps to --beacon-strong (a monochrome step, never a hue). */
 .btn-primary {
   background: var(--beacon);
   color: var(--on-beacon);
@@ -363,8 +365,8 @@ button {
   background: var(--surface-2);
 }
 
-/* §23.1 destructive — monochrome critical treatment: weight + border,
-   no hue. The critical tone sits on a quiet surface, never a colored fill. */
+/* Destructive — monochrome critical treatment: weight + border, no hue.
+   The critical register tone sits on a quiet surface, never a colored fill. */
 .btn-danger {
   background: var(--surface-2);
   border-color: var(--status-critical);
@@ -419,8 +421,8 @@ button {
   height: 18px;
 }
 
-/* §2.5 — kbd badges: a quiet mono chip next to a control that has a
-   shortcut. Key-cap shadow via the border token, never a hardcoded tint. */
+/* §2.5 — kbd badges: a quiet mono chip beside a shortcut. Key-cap shadow
+   via the border token, never a hardcoded tint. */
 .kbd {
   display: inline-flex;
   align-items: center;
@@ -485,10 +487,10 @@ select:disabled {
   cursor: not-allowed;
 }
 
-/* Card hover — tone-shift + ±1.01 scale, CARDS ONLY. Buttons and rows
-   tone-shift their background but never scale (they're already pressed
-   targets; scaling them reads as jitter). Applied via .card-hover on
-   interactive card containers. */
+/* Card hover — tone-shift + ±1.01 lift, CARDS ONLY (§3.0). Buttons and
+   rows tone-shift but never scale (they're already pressed targets;
+   scaling them reads as jitter). Gated to hover-capable fine pointers;
+   opt-in via .card-hover on interactive card containers. */
 @media (hover: hover) and (pointer: fine) {
   .card-hover {
     transition: background var(--duration-fast) var(--ease-signal),
@@ -2146,6 +2148,8 @@ select:disabled {
 /* Single avatar primitive — used by the sidebar, lists, inbox, palette.
    `display: inline-flex` keeps it aligned inside text rows; the lg
    variant is the profile size. */
+/* Avatar — mono initials disc; shared by sidebar, lists, inbox, palette.
+   inline-flex keeps it aligned in text rows; lg is the profile size. */
 .avatar {
   width: 28px;
   height: 28px;
@@ -2169,6 +2173,7 @@ select:disabled {
   font-size: 14px;
 }
 
+/* Tag chip — quiet surface-3 squircle, tertiary text. */
 .tag-chip {
   display: inline-flex;
   align-items: center;
@@ -2304,6 +2309,10 @@ select:disabled {
 /* Filter chips — §3.4: border --border-subtle, 510, press 0.97.
    Radius is the squircle --radius-sm, never a pill — the corner scale
    has no pill token (§1.5). */
+/* §3.4 filter chips — squircle (radius-sm), border-subtle, 510 weight;
+   pressed scale comes from the interaction register. The selected state
+   (.chip-active, below) keeps its solid beacon fill on hover with a
+   brightness lift — never dims back to the faint tint. */
 .chip {
   min-height: 36px;
   padding: 0 14px;
@@ -3488,6 +3497,8 @@ select:disabled {
 /* §1.1 badges — monochrome by default; classification variants carry a
    DOT register, never text hue (the old hue-only spam/important classes
    are retired — text stays on the 4.5:1 monochrome ramp, §1.1). */
+/* §1.1 badges — monochrome by default; classification variants carry the
+   DOT register (shape + hue on the dot only), never text hue. */
 .badge {
   display: inline-flex;
   align-items: center;

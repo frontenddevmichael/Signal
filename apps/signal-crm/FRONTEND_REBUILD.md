@@ -60,6 +60,17 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
   Verified: tsc clean, 206/206 vitest, 42/42 Playwright incl. new `form-focus.spec.ts`
   (2px beacon ring asserted via focusVisible in BOTH modes, halo box-shadow absent).
   Committed on `feat/quiet-future-os-rebuild`.
+- **2a-ii chrome primitives — DONE (2026-08-16)**: rebuilt the button register
+  (`.btn` + primary/ghost/danger/danger-ghost/`-sm`), `.icon-btn`, `.kbd`,
+  `.chip`, `.card-hover` gate, `.avatar`/`.avatar-lg`, `.tag-chip`,
+  `.row-count`, and the `.badge` register fresh from tokens. Behavior-neutral
+  rewrites (selectors + tokens unchanged — these units were already verified
+  compliant); refreshed comments and § references. Token check: `--beacon-strong`
+  is a monochrome step (dark `--status-positive` = `#d4d6d9` gray, light
+  `#2a2c2e`), NOT the sage hue — primary-button hover stays monochrome;
+  `--on-beacon`/`--surface-raised`/`--radius-card`/`--shadow-card`/`--hairline`
+  all resolve. Verified: tsc clean, 206/206 vitest, 42/42 Playwright.
+  Committed on `feat/quiet-future-os-rebuild`.
 
 ## Audit result (2026-08-15, three parallel passes)
 
