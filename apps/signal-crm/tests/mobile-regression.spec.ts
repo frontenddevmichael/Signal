@@ -187,67 +187,74 @@ test.describe("data export", () => {
   });
 });
 
+/**
+ * The tabbar contract, run at every mobile width: 7 persistent items, each
+ * with a VISIBLE label (icon+label stack — never icon-only), all on one
+ * row at the §23.8 44px floor, no horizontal overflow. Truncation is the
+ * label's ellipsis (the span never wraps or pushes the bar taller), so the
+ * bar stays ≤60px even at 320px where each item gets ~45px.
+ */
+async function assertTabbar(page: Page) {
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await expect(page.locator(".tabbar")).toBeVisible();
+
+  const items = page.locator(".tabbar .nav-item");
+  await expect(items).toHaveCount(7);
+  const labels = await items.evaluateAll((els) =>
+    els.map((el) => (el.getAttribute("aria-label") ?? "").trim()),
+  );
+  expect(labels).toEqual([
+    "Clients",
+    "Invoices",
+    "Inbox",
+    "Calendar",
+    "Follow-ups",
+    "Settings",
+    "Sign out",
+  ]);
+  // Labels are VISIBLE text, not icon-only — each item must render its
+  // label span (the tabbar stack is what makes icons read as destinations).
+  const visible = await items.evaluateAll((els) =>
+    els.map((el) => (el.textContent ?? "").trim()),
+  );
+  expect(visible).toEqual([
+    "Clients",
+    "Invoices",
+    "Inbox",
+    "Calendar",
+    "Follow-ups",
+    "Settings",
+    "Sign out",
+  ]);
+  const heights = await items.evaluateAll((els) =>
+    els.map((el) => Math.round(el.getBoundingClientRect().height)),
+  );
+  for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
+
+  // All 7 items sit on ONE row (regresses the 242px stacked tabbar: nav(true)
+  // wraps items in a sidebar .nav-section column that used to stack them).
+  const tops = await items.evaluateAll((els) =>
+    els.map((el) => Math.round(el.getBoundingClientRect().top)),
+  );
+  expect(new Set(tops).size).toBe(1);
+  const barHeight = await page
+    .locator(".tabbar")
+    .evaluate((el) => Math.round(el.getBoundingClientRect().height));
+  expect(barHeight).toBeLessThanOrEqual(60);
+
+  // No horizontal overflow at this width.
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+}
+
 test.describe("mobile regression — 390×844", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test("tabbar: 7 persistent items, sidebar hidden, 44px touch floor", async ({ page }) => {
     await signIn(page);
-
-    // Sidebar is gone; the tabbar takes over.
-    await expect(page.locator(".sidebar")).toBeHidden();
-    await expect(page.locator(".tabbar")).toBeVisible();
-
-    // All 7 entries — Clients, Invoices, Inbox, Calendar, Follow-ups,
-    // Settings, Sign out — each at the §23.8 44px floor.
-    const items = page.locator(".tabbar .nav-item");
-    await expect(items).toHaveCount(7);
-    const labels = await items.evaluateAll((els) =>
-      els.map((el) => (el.getAttribute("aria-label") ?? "").trim()),
-    );
-    expect(labels).toEqual([
-      "Clients",
-      "Invoices",
-      "Inbox",
-      "Calendar",
-      "Follow-ups",
-      "Settings",
-      "Sign out",
-    ]);
-    // Labels are VISIBLE text, not icon-only — each item must render its
-    // label span (the tabbar stack is what makes icons read as destinations).
-    const visible = await items.evaluateAll((els) =>
-      els.map((el) => (el.textContent ?? "").trim()),
-    );
-    expect(visible).toEqual([
-      "Clients",
-      "Invoices",
-      "Inbox",
-      "Calendar",
-      "Follow-ups",
-      "Settings",
-      "Sign out",
-    ]);
-    const heights = await items.evaluateAll((els) =>
-      els.map((el) => Math.round(el.getBoundingClientRect().height)),
-    );
-    for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
-
-    // All 7 items sit on ONE row (regresses the 242px stacked tabbar: nav(true)
-    // wraps items in a sidebar .nav-section column that used to stack them).
-    const tops = await items.evaluateAll((els) =>
-      els.map((el) => Math.round(el.getBoundingClientRect().top)),
-    );
-    expect(new Set(tops).size).toBe(1);
-    const barHeight = await page
-      .locator(".tabbar")
-      .evaluate((el) => Math.round(el.getBoundingClientRect().height));
-    expect(barHeight).toBeLessThanOrEqual(60);
-
-    // No horizontal overflow at this width.
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
+    await assertTabbar(page);
   });
 
   test("calendar: chip icons survive, legend renders with all 6 entries", async ({ page }) => {
@@ -450,6 +457,38 @@ for (const vp of NARROW_VIEWPORTS) {
         () => document.documentElement.scrollWidth - window.innerWidth,
       );
       expect(overflow).toBeLessThanOrEqual(0);
+    });
+
+    test("tabbar: labels truncate, 44px floor, one row, no overflow", async ({ page }) => {
+      await signIn(page);
+      await assertTabbar(page);
+
+      // At the narrowest widths each item gets ~45px (320/7). The labels must
+      // ELLIPSIS-truncate, never wrap to a second line (which would push the
+      // bar past the 60px ceiling assertTabbar already checks) and never
+      // overflow the item (the span has max-width:100% + overflow:hidden).
+      const spills = await page.locator(".tabbar .nav-item").evaluateAll((els) =>
+        els.map((el) => {
+          const label = el.querySelector(":scope > span:not(.nav-count)");
+          if (!label) return null;
+          const lr = label.getBoundingClientRect();
+          const er = el.getBoundingClientRect();
+          return {
+            text: label.textContent,
+            overflowX: getComputedStyle(label).overflowX,
+            whiteSpace: getComputedStyle(label).whiteSpace,
+            fits: lr.right <= er.right + 0.5 && lr.left >= er.left - 0.5,
+            lines: Math.round(lr.height / 12), // 11px label ≈ 12-13px line height
+          };
+        }),
+      );
+      for (const s of spills) {
+        expect(s).not.toBeNull();
+        expect(s!.overflowX).toBe("hidden");
+        expect(s!.whiteSpace).toBe("nowrap");
+        expect(s!.fits).toBe(true);
+        expect(s!.lines).toBeLessThanOrEqual(1);
+      }
     });
   });
 }
