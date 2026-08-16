@@ -69,8 +69,8 @@ export function SignIn() {
         <h1>Signal</h1>
         <p className="sub">The CRM for solo developers.</p>
 
-        <form onSubmit={submitPassword} noValidate>
-          <div className="field">
+        <form onSubmit={submitPassword} noValidate aria-busy={pending === "password"}>
+          <div className={`field${error ? " field-error" : ""}`}>
             <label htmlFor="email">Email</label>
             <input
               id="email"
@@ -80,9 +80,11 @@ export function SignIn() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              aria-invalid={error !== null}
+              aria-describedby={error ? "signin-error" : undefined}
             />
           </div>
-          <div className="field">
+          <div className={`field${error ? " field-error" : ""}`}>
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -92,11 +94,13 @@ export function SignIn() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              aria-invalid={error !== null}
+              aria-describedby={error ? "signin-error" : undefined}
             />
           </div>
 
           {error && (
-            <div className="field-error-message" role="alert" style={{ marginBottom: 12 }}>
+            <div id="signin-error" className="field-error-message" role="alert" style={{ marginBottom: 12 }}>
               {error}
             </div>
           )}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -14,6 +14,8 @@ const KIND_ICON: Record<CalendarEvent["kind"], React.ComponentType<React.SVGProp
   invoice: IconInvoices,
   meeting: IconCalendar,
 };
+
+const TODAY_KEY = dayKey(Date.now());
 
 /**
  * Mini month grid for a single client — the "what's happening around this
@@ -37,6 +39,35 @@ export function ClientCalendar({ contactId }: { contactId: Id<"contacts"> }) {
     () => buildMonthGrid(cursor.year, cursor.month),
     [cursor.year, cursor.month],
   );
+
+  // §2.4 keyboard grid — same roving tabindex as the full calendar screen:
+  // arrows move between the 42 cells, Home/End to the row ends, cell focus
+  // clamps at the grid edges. Today (or the first in-month day) is the entry.
+  const initialFocus = (() => {
+    const hit = cells.findIndex((c) => dayKey(c.date.getTime()) === TODAY_KEY);
+    return hit >= 0 ? hit : Math.max(0, cells.findIndex((c) => c.inMonth));
+  })();
+  const [focusIdx, setFocusIdx] = useState<number>(initialFocus);
+  const cellRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  useEffect(() => {
+    setFocusIdx(initialFocus);
+  }, [initialFocus]);
+
+  const onGridKey = (e: React.KeyboardEvent, idx: number) => {
+    let next = -1;
+    if (e.key === "ArrowRight") next = Math.min(41, idx + 1);
+    else if (e.key === "ArrowLeft") next = Math.max(0, idx - 1);
+    else if (e.key === "ArrowDown") next = Math.min(41, idx + 7);
+    else if (e.key === "ArrowUp") next = Math.max(0, idx - 7);
+    else if (e.key === "Home") next = idx - (idx % 7);
+    else if (e.key === "End") next = idx - (idx % 7) + 6;
+    if (next !== -1 && next !== idx) {
+      e.preventDefault();
+      setFocusIdx(next);
+      cellRefs.current[next]?.focus();
+    }
+  };
 
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -110,16 +141,20 @@ export function ClientCalendar({ contactId }: { contactId: Id<"contacts"> }) {
       {events === undefined ? (
         <div className="skeleton" style={{ height: 240 }} aria-hidden="true" />
       ) : (
-        <div className="cal-grid" role="grid" aria-label={`Calendar for ${monthTitle}`}>
-          {cells.map((cell) => {
+        <div className="cal-grid" role="grid" aria-label={`Calendar for ${monthTitle}`} onKeyDown={(e) => onGridKey(e, focusIdx)}>
+          {cells.map((cell, i) => {
             const key = dayKey(cell.date.getTime());
             const dayEvents = byDay.get(key) ?? [];
-            const isToday = key === dayKey(today.getTime());
+            const isToday = key === TODAY_KEY;
             return (
               <div
                 key={key}
+                ref={(el) => {
+                  cellRefs.current[i] = el;
+                }}
                 role="gridcell"
                 aria-label={cell.date.toDateString()}
+                tabIndex={i === focusIdx ? 0 : -1}
                 className={`cal-cell${cell.inMonth ? "" : " out"}${isToday ? " today" : ""}`}
               >
                 <span className="cal-daynum num">{cell.date.getDate()}</span>

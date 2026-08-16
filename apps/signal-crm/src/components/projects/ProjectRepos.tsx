@@ -16,6 +16,7 @@ export function ProjectRepos({ projectId }: { projectId: Id<"projects"> }) {
   const removeLink = useMutation(api.github.removeRepoLink);
   const { push } = useToasts();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pendingId, setPendingId] = useState<Id<"projectRepos"> | null>(null);
 
   if (repos === undefined) return <div className="skeleton" style={{ height: 40 }} aria-hidden="true" />;
 
@@ -44,12 +45,20 @@ export function ProjectRepos({ projectId }: { projectId: Id<"projects"> }) {
               <button
                 type="button"
                 className="btn btn-danger-ghost btn-sm"
+                disabled={pendingId !== null}
                 onClick={async () => {
-                  await removeLink({ projectRepoId });
-                  push({ message: `${repo.fullName} unlinked` });
+                  setPendingId(projectRepoId);
+                  try {
+                    await removeLink({ projectRepoId });
+                    push({ message: `${repo.fullName} unlinked` });
+                  } catch {
+                    push({ message: `Could not unlink ${repo.fullName}.` });
+                  } finally {
+                    setPendingId(null);
+                  }
                 }}
               >
-                Unlink
+                {pendingId === projectRepoId ? "Unlinking…" : "Unlink"}
               </button>
             </li>
           ))}

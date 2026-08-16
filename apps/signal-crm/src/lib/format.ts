@@ -1,8 +1,8 @@
 /**
  * §22.2 — all numerals render in Geist Mono (handled by the .num/.money CSS
  * classes at the usage site). §20.8 — timestamps are stored in UTC; rendering
- * converts to the viewer's local timezone (browser default for Phase 1; the
- * users.timezone field drives this in a later pass).
+ * converts to the relevant party's timezone — Shell sets the freelancer's
+ * users.timezone, the Portal sets the client's (see setActiveTimezone below).
  */
 
 /** Money is always minor units (cents/kobo) — converted ONLY here, at render. */

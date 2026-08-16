@@ -60,26 +60,30 @@ export function MergeDialog({
   const [error, setError] = useState<string | null>(null);
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
   const initialized = useRef(false);
+  const createStarted = useRef(false);
 
-  // Duplicate path: materialize contact B (force) so the merge mutation has it.
+  // Duplicate path: materialize contact B (force) once so the merge mutation
+  // has it. The ref guard is the StrictMode idempotency guard (the audit's
+  // double-create): a deps-`[]` effect re-runs its setup under StrictMode and
+  // would dispatch contacts.create TWICE → an orphan contact B. The ref
+  // short-circuits the second setup BEFORE any state update is stranded, so
+  // the single dispatch's setState always lands (React 18+ no-ops on a truly
+  // unmounted instance, which is why the old `alive` cleanup was harmful AND
+  // insufficient — it let the second create through AND dropped the first).
   useEffect(() => {
-    if (!payload) return;
-    let alive = true;
+    if (!payload || createStarted.current) return;
+    createStarted.current = true;
     void (async () => {
       try {
         const res = await create({ ...payload, force: true });
-        if (alive) setCreatedOtherId(res.created);
+        setCreatedOtherId(res.created);
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "Could not create contact.");
+        setError(e instanceof Error ? e.message : "Could not create contact.");
       } finally {
-        if (alive) setCreating(false);
+        setCreating(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [payload, create]);
 
   const bId = otherContactId ?? createdOtherId;
   const a = useQuery(api.contacts.get, { contactId: contactId as Id<"contacts"> });

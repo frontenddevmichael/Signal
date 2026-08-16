@@ -28,6 +28,22 @@ export function GmailSetupBlock({ contactId }: { contactId: Id<"contacts"> }) {
     }
   };
 
+  const doEnsure = async () => {
+    try {
+      await ensure({ contactId });
+    } catch {
+      push({ message: "Could not set up forwarding rows." });
+    }
+  };
+
+  const doMarkAdded = async () => {
+    try {
+      await markAdded({ contactId });
+    } catch {
+      push({ message: "Could not mark the filter as added." });
+    }
+  };
+
   if (setup === undefined) {
     return <div className="skeleton" style={{ height: 90 }} aria-hidden="true" />;
   }
@@ -36,7 +52,10 @@ export function GmailSetupBlock({ contactId }: { contactId: Id<"contacts"> }) {
   const anyAdded = setup.rows.some((r) => r.addedToFilter);
   const groups = new Map<number, { text: string; added: boolean; confirmed: boolean }[]>();
   for (const block of setup.blocks) {
-    const row = setup.rows[0];
+    // Match the row for THIS filter group. Splitting past the OR-chain ceiling
+    // mints group 2+ rows — `rows[0]` would read group 1's status onto all of
+    // them, showing "confirmed" for filters that never were.
+    const row = setup.rows.find((r) => r.filterGroup === block.group);
     groups.set(block.group, [
       ...(groups.get(block.group) ?? []),
       { text: block.filterText, added: row?.addedToFilter ?? false, confirmed: row?.forwardingConfirmed ?? false },
@@ -48,7 +67,7 @@ export function GmailSetupBlock({ contactId }: { contactId: Id<"contacts"> }) {
       <div className="gmail-setup surface-card">
         <div className="section-head">
           <h3>Gmail forwarding</h3>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void ensure({ contactId })}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void doEnsure()}>
             Set up
           </button>
         </div>
@@ -103,7 +122,7 @@ export function GmailSetupBlock({ contactId }: { contactId: Id<"contacts"> }) {
       ))}
 
       <div className="gmail-actions">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void markAdded({ contactId })}>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void doMarkAdded()}>
           {anyAdded ? "I've updated the filter" : "I've added the filter"}
         </button>
         {anyPendingConfirmation && (

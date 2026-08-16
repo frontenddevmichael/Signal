@@ -55,10 +55,14 @@ export function SecuritySettings() {
   };
 
   const doCreateKey = async () => {
-    const { key } = await createKey({ label: keyLabel });
-    setNewKey(key); // shown once — never retrievable again
-    setCreateOpen(false);
-    setKeyLabel("");
+    try {
+      const { key } = await createKey({ label: keyLabel });
+      setNewKey(key); // shown once — never retrievable again
+      setCreateOpen(false);
+      setKeyLabel("");
+    } catch {
+      push({ message: "Could not create the API key." });
+    }
   };
 
   return (
@@ -93,11 +97,14 @@ export function SecuritySettings() {
                     <button
                       type="button"
                       className="btn btn-danger-ghost btn-sm"
-                      onClick={() => {
-                        void revokeSession({ deviceId: s.deviceId }).then((r) =>
-                          push({ message: r.revoked ? "Session revoked" : "Session already revoked" })
-                        );
-                      }}
+onClick={async () => {
+                    try {
+                      const r = await revokeSession({ deviceId: s.deviceId });
+                      push({ message: r.revoked ? "Session revoked" : "Session already revoked" });
+                    } catch {
+                      push({ message: "Could not revoke that session." });
+                    }
+                  }}
                     >
                       Revoke
                     </button>
@@ -110,10 +117,13 @@ export function SecuritySettings() {
         <button
           type="button"
           className="btn btn-ghost btn-sm"
-          onClick={() => {
-            void signOutEverywhere({ currentDeviceId }).then(
-              (r) => push({ message: `Signed out ${r.revoked} other session(s)` })
-            );
+          onClick={async () => {
+            try {
+              const r = await signOutEverywhere({ currentDeviceId });
+              push({ message: `Signed out ${r.revoked} other session(s)` });
+            } catch {
+              push({ message: "Could not sign out other sessions." });
+            }
           }}
         >
           Sign out everywhere
@@ -145,7 +155,18 @@ export function SecuritySettings() {
                     {k.lastUsedAt ? ` · last used ${new Date(k.lastUsedAt).toLocaleString()}` : " · never used"}
                   </div>
                 </div>
-                <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => void revokeKey({ keyId: k._id })}>
+                <button
+                  type="button"
+                  className="btn btn-danger-ghost btn-sm"
+                  onClick={async () => {
+                    try {
+                      await revokeKey({ keyId: k._id });
+                      push({ message: `Key ${k.label} revoked` });
+                    } catch {
+                      push({ message: "Could not revoke that key." });
+                    }
+                  }}
+                >
                   Revoke
                 </button>
               </li>

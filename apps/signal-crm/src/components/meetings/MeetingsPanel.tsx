@@ -61,9 +61,13 @@ export function MeetingsPanel({ contactId }: { contactId: Id<"contacts"> }) {
 
   const doRemove = async () => {
     if (!removeTarget) return;
-    await removeMeeting({ eventId: removeTarget._id });
-    push({ message: `${removeTarget.title} removed` });
-    setRemoveTarget(null);
+    try {
+      await removeMeeting({ eventId: removeTarget._id });
+      push({ message: `${removeTarget.title} removed` });
+      setRemoveTarget(null);
+    } catch {
+      push({ message: "Could not remove the meeting." });
+    }
   };
 
   return (

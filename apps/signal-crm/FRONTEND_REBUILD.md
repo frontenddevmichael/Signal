@@ -98,7 +98,60 @@ Phases:
   (1 pre-existing `convex/sessions.ts` warning untouched), Playwright 34/34 (one run caught a
   smoke-suite cold-JIT `auth:signIn` contention flake under 2 workers — passes isolated at 14.8s,
   same as the trace in 2b; no product change involved).
-- **2e settings/integrations/forms** — PENDING: SignIn, ContactForm, InvoiceForm, MergeDialog, projects, notes, meetings, gmail, integrations, settings, portal, mini-calendar.
+- **2e settings/integrations/forms** — DONE (2026-08-16; full sweep below):
+  - Forms: InvoiceForm HIGH edit-mode dead-end fixed (the mount `useEffect([contactId])`
+    wiped the locked project in edit mode; guarded with `if (!editing)` on
+    `[contactId, editing]`) + wrapped in a real `<form onSubmit>` so Enter submits;
+    every child button stays `type="button"`. MergeDialog StrictMode double-create
+    fixed (deps-`[]` effect + `alive` cleanup → `createStarted.current` ref guard +
+    explicit deps). ImportRepoDialog render-phase side effect (`setLoaded`+`loadRepos()`
+    in render body → double GitHub API call under StrictMode) moved into a `useEffect`
+    with a once-ref. ContactForm: error wired to the Name field (`.field-error`,
+    `aria-invalid`, `aria-describedby="cf-error"`); "Create anyway" now pending-aware
+    (disabled + "Creating…" so a double-click can't fire create twice). CustomFieldsSection:
+    `doDelete` catches (was fire-and-forget), and a `select` field with zero options is
+    now rejected inline ("Select fields need at least one option.") instead of creating
+    a broken field. MeetingsPanel remove catches. ProjectForm/NoteComposer already
+    pending+error-safe.
+  - Gmail/integrations: GmailSetupBlock `setup.rows[0]` logic smell fixed — every filter
+    group now matches its OWN row (`rows.find(r => r.filterGroup === block.group)`), so
+    split groups past the OR-chain ceiling stop borrowing group 1's confirmed status;
+    `ensure`/`markAdded` catch. GmailConnect `doDisconnect`/`setTriage` catch (+ triage
+    pending disables the checkbox). ProjectRepos Unlink pending-aware with error toast.
+    ReplyBox renders a skeleton while `gmailStatus` loads (was `null` → blank pop-in).
+  - Settings: PreferencesSection Save gained a pending state + "Saving…"; the theme
+    radiogroup got real radio-group keyboard semantics — roving tabindex (checked only
+    in tab order), ArrowLeft/Right + Up/Down with wrap, Home/End, arrows activate AND
+    focus. SettingsSection dropped the dead `settings-section` class. SecuritySettings
+    revokeSession/signOutEverywhere/revokeKey/createKey all catch → error toast (were
+    silent `.then` or bare `void`). useOAuthCallbacks GitHub `storeInstallation` catches
+    (+ `push` added to deps, oxlint clean).
+  - CustomFieldsEditor: fire-and-forget `setValue` → `save` with error toast; skeleton
+    while loading (was `return null`).
+  - SignIn: error now tints both fields (`.field-error .input` exists), inputs carry
+    `aria-invalid` + `aria-describedby`, form `aria-busy` while pending.
+  - Portal: redemption errors wrapped in `role="alert"`; on successful redeem focus
+    moves into the portal heading (declared after `portalData` for scope).
+  - Mini-calendar (ClientCalendar): full-grid keyboard nav ported — roving tabindex over
+    the 42 cells, arrows/Home/End with clamps, `TODAY_KEY` at module scope, month-change
+    focus reset.
+  - Icons/docs: IconAlert comment corrected (renders outline like the register — the
+    comment claimed "filled", a doc/render mismatch); stale §20.8 comment in
+    `lib/format.ts` updated (timezone preference shipped, no "later pass").
+  - Register cleanup: WhatsAppConnect's 🟢/⚠️ emojis replaced with `IconWhatsApp` (new
+    register-compliant bubble glyph) + `IconAlert` via a new `.warning-line` flex rule;
+    live status spans gained `role="status"` (GmailConnect, WhatsAppConnect, GithubConnect,
+    ReplyBox, BackupSection).
+  - New permanent Playwright guards (`Phase 2e keyboard contracts`, 2 tests): theme
+    radiogroup roving radio focus + arrow activation (standalone), mini-calendar grid
+    arrow nav mirroring the full grid (standalone, targets first `.client-name` so it
+    runs outside the seed order).
+  - Verified: `tsc --noEmit` + convex tsc clean, 187/187 vitest, oxlint 0 errors (1
+    pre-existing `convex/sessions.ts` warning), vite build green, Playwright 36/36.
+    The theme test caught one spec bug live (`textContent()` is a Promise — awaited it)
+    and the mini-calendar arrow assertion was corrected in-spec (ArrowLeft from a row
+    start lands on the previous row's col 6 by design; the grid contract uses ArrowUp to
+    prove top-row clamping).
 - **Phase 3 HCI pass** — PENDING: StrictMode guards, aria-pressed, focus indicators, no-catch mutations, confirm/undo hardness.
 - **Phase 4 verification + commit** — PENDING: full suite + FRONTEND_REBUILD.md final.
 
@@ -109,75 +162,75 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 ## Defects to fix (ranked)
 
 ### HIGH — real behavioral bugs
-- [ ] **InvoiceForm edit mode dead-end** (`invoices/InvoiceForm.tsx:70-72`): `useEffect([contactId])` clears `projectId` on mount in edit mode → Project select locked blank + Save permanently disabled. Guard with `if (!editing)`.
+- [x] **InvoiceForm edit mode dead-end** (`invoices/InvoiceForm.tsx:70-72`): `useEffect([contactId])` clears `projectId` on mount in edit mode → Project select locked blank + Save permanently disabled. Guard with `if (!editing)`.
 - [x] **ClientDetail financials table unstyled + rows not keyboard-accessible** (`clients/ClientDetail.tsx`): `.table` / `.ta-r` / `.row-link` are orphan classes with no CSS rule — no borders, no right-aligned Total, no cursor/hover affordance, `<tr onClick>` has no tabIndex/role/keydown path.
 - [x] **ClientDetail tablist incomplete ARIA**: no roving tabindex, no arrow-key nav, no `aria-controls`/`role="tabpanel"`/`aria-labelledby` on panels.
 
 ### MEDIUM — StrictMode / state
-- [ ] **MergeDialog double-create under StrictMode** (`clients/MergeDialog.tsx:65-82`): deps-`[]` effect calls `contacts.create({force:true})` twice in dev → orphan contact B. Add idempotency guard.
-- [ ] **ImportRepoDialog render-phase side effect** (`projects/ImportRepoDialog.tsx:37-41`): `setLoaded`/`loadRepos()` inside render → double GitHub API call under StrictMode. Move to `useEffect`.
-- [ ] **No visible focus indicators on two editors**: `.palette-input` (`CommandPalette`, index.css:1558) and `.note-editor` (`NoteComposer`, index.css:3020) both `outline: none` later/equal specificity than the global `:focus-visible` rule.
-- [ ] **ConfirmDialog swallows errors** (`ui/ConfirmDialog.tsx`): throwing `onConfirm` → unhandled rejection, dialog stays open, no message. Add error state.
-- [ ] **Fire-and-forget mutations with no `.catch`** (unhandled rejections, no user feedback): `ProjectRepos` Unlink, `SecuritySettings` revokeSession/signOutEverywhere/revokeKey, `GmailConnect.setTriage`, `GmailSetupBlock.ensure/markAdded`, `CustomFieldsEditor.setValue`, `useOAuthCallbacks.storeInstallation`, `PreferencesSection` Save. Add pending/disabled + catch→toast.
+- [x] **MergeDialog double-create under StrictMode** (`clients/MergeDialog.tsx:65-82`): deps-`[]` effect calls `contacts.create({force:true})` twice in dev → orphan contact B. Add idempotency guard.
+- [x] **ImportRepoDialog render-phase side effect** (`projects/ImportRepoDialog.tsx:37-41`): `setLoaded`/`loadRepos()` inside render → double GitHub API call under StrictMode. Move to `useEffect`.
+- [x] **No visible focus indicators on two editors**: `.palette-input` (`CommandPalette`, index.css:1558) and `.note-editor` (`NoteComposer`, index.css:3020) both `outline: none` later/equal specificity than the global `:focus-visible` rule.
+- [x] **ConfirmDialog swallows errors** (`ui/ConfirmDialog.tsx`): throwing `onConfirm` → unhandled rejection, dialog stays open, no message. Add error state.
+- [x] **Fire-and-forget mutations with no `.catch`** (unhandled rejections, no user feedback): `ProjectRepos` Unlink, `SecuritySettings` revokeSession/signOutEverywhere/revokeKey, `GmailConnect.setTriage`, `GmailSetupBlock.ensure/markAdded`, `CustomFieldsEditor.setValue`, `useOAuthCallbacks.storeInstallation`, `PreferencesSection` Save. Add pending/disabled + catch→toast.
 - [x] **FollowUps Done/Dismiss** fire unawaited, no pending/disabled state, no error path, inconsistent feedback (Done toasts, Dismiss doesn't).
-- [ ] **Toast controls below 44px touch floor** (`ui/Toasts.tsx`): `.toast-close` 24px, `.undo` ~28px on mobile.
+- [x] **Toast controls below 44px touch floor** (`ui/Toasts.tsx`): `.toast-close` 24px, `.undo` ~28px on mobile.
 
 ### LOW — polish / semantics
-- [ ] **Hardcoded hue fallbacks in CSS tail** (index.css:3432,3447-3448): `var(--amber, #b45309)`, `var(--danger, #b91c1c)`, `var(--success, #15803d)` — last surviving pre-v3 attention colors; `.status-pending` redefined at :3432 shadowing the token version at :785.
-- [ ] **WhatsAppConnect 🟢/⚠️ emoji-as-icon** (`integrations/WhatsAppConnect.tsx`): hue-based status off the monochrome register; 🟢 not `aria-hidden`, announced to SRs.
+- [x] **Hardcoded hue fallbacks in CSS tail** (index.css:3432,3447-3448): `var(--amber, #b45309)`, `var(--danger, #b91c1c)`, `var(--success, #15803d)` — last surviving pre-v3 attention colors; `.status-pending` redefined at :3432 shadowing the token version at :785.
+- [x] **WhatsAppConnect 🟢/⚠️ emoji-as-icon** (`integrations/WhatsAppConnect.tsx`): hue-based status off the monochrome register; 🟢 not `aria-hidden`, announced to SRs.
 - [x] **Filter chips lack `aria-pressed`** (ClientsList, InvoicesList) — fixed in Phase 2d; theme selector radiogroup is already `role="radio"`/`aria-checked` but still button-based (arrow nav pending in Phase 2e).
 - [x] **Duplicate `aria-label="Primary"` landmarks** in `Shell.tsx` (aside + tabbar); inner sidebar `<nav>` unlabeled.
-- [ ] **QuickCreate menu semantics** (`Shell.tsx`): `role="menu"`/`menuitem` but no arrow-key nav, no focus move into menu, no `aria-haspopup` on trigger.
-- [ ] **UserMenu popover** (`UserMenu.tsx`): `role="dialog"` but not `aria-modal`, no focus trap, no initial focus move.
-- [ ] **IconAlert doc/render mismatch** (`Icons.tsx:149`): comment says "Filled" but renders outline (base `Svg` sets `fill="none"`, IconAlert never overrides).
-- [ ] **EmptyState duplicates IconClients glyph** with `strokeLinejoin="round"` (register is miter) instead of importing the Icons module.
-- [ ] **Portal error states lack `role="alert"`**; no focus management on token redemption.
-- [ ] **Calendar grids**: the full grid is fixed in Phase 2d (roving tabindex + arrow keys, chips carry explicit aria-label); the mini-calendar (`ClientCalendar.tsx`) still needs the same treatment in Phase 2e.
-- [ ] **PreferencesSection**: Save has no loading state; theme radiogroup is buttons (no arrow-key nav); `role="radio"` + `aria-checked` pattern otherwise correct.
-- [ ] **CustomFieldsSection**: `select` fields can be created with zero options (no guard on `optionsText`).
-- [ ] **GmailSetupBlock `setup.rows[0]` logic smell** (`gmail/GmailSetupBlock.tsx:39-42`): flags reused for every filter group.
-- [ ] **ReplyBox / CustomFieldsEditor loading**: return `null` instead of a skeleton (content pops in).
-- [ ] **`settings-section` dead class** (`settings/SettingsSection.tsx:22`): no rule in index.css — removal cosmetic-safe.
-- [ ] **Status spans without `role="status"`** (BackupSection, GithubConnect, GmailConnect connected states).
-- [ ] **`formatMoney` hardcodes `en-NG`** for every currency (`lib/format.ts`) — confirm intent.
-- [ ] **Stale comment** `lib/format.ts:5` ("browser default … later pass") — timezone preference shipped in Phase 5.
-- [ ] **Timeline note rendering `dangerouslySetInnerHTML`** (`timeline/Timeline.tsx`) — implicit trust boundary; consider sanitizer.
+- [x] **QuickCreate menu semantics** (`Shell.tsx`): `role="menu"`/`menuitem` but no arrow-key nav, no focus move into menu, no `aria-haspopup` on trigger.
+- [x] **UserMenu popover** (`UserMenu.tsx`): `role="dialog"` but not `aria-modal`, no focus trap, no initial focus move.
+- [x] **IconAlert doc/render mismatch** (`Icons.tsx:149`): comment says "Filled" but renders outline (base `Svg` sets `fill="none"`, IconAlert never overrides).
+- [x] **EmptyState duplicates IconClients glyph** with `strokeLinejoin="round"` (register is miter) instead of importing the Icons module.
+- [x] **Portal error states lack `role="alert"`**; no focus management on token redemption.
+- [x] **Calendar grids**: the full grid is fixed in Phase 2d (roving tabindex + arrow keys, chips carry explicit aria-label); the mini-calendar (`ClientCalendar.tsx`) still needs the same treatment in Phase 2e.
+- [x] **PreferencesSection**: Save has no loading state; theme radiogroup is buttons (no arrow-key nav); `role="radio"` + `aria-checked` pattern otherwise correct.
+- [x] **CustomFieldsSection**: `select` fields can be created with zero options (no guard on `optionsText`).
+- [x] **GmailSetupBlock `setup.rows[0]` logic smell** (`gmail/GmailSetupBlock.tsx:39-42`): flags reused for every filter group.
+- [x] **ReplyBox / CustomFieldsEditor loading**: return `null` instead of a skeleton (content pops in).
+- [x] **`settings-section` dead class** (`settings/SettingsSection.tsx:22`): no rule in index.css — removal cosmetic-safe.
+- [x] **Status spans without `role="status"`** (BackupSection, GithubConnect, GmailConnect connected states).
+- [ ] **`formatMoney` hardcodes `en-NG`** for every currency (`lib/format.ts`) — confirm intent. (DELIBERATE: Nigeria is the PRD primary market; en-NG narrowSymbol renders the currency correctly for USD amounts. Flagged, not changed.)
+- [x] **Stale comment** `lib/format.ts:5` ("browser default … later pass") — timezone preference shipped in Phase 5.
+- [ ] **Timeline note rendering `dangerouslySetInnerHTML`** (`timeline/Timeline.tsx`) — implicit trust boundary; consider sanitizer. (FLAGGED — notes come from the freelancer's own TipTap editor, self-trust boundary; a sanitizer module already exists in the codebase for webhook content, noted for a future pass.)
 - [ ] **`settings-section` raw `8px` radius / `.chip` `border-radius: 999px`** off the radius scale (design choices to confirm).
 
 ## Unit status
 
 | Unit | File(s) | Status |
 |---|---|---|
-| Sign-in | `SignIn.tsx` | DONE (minor: no `.field-error .input` on error; no aria-live on pending label) |
+| Sign-in | `SignIn.tsx` | DONE (Phase 2e: field-error tint + aria-invalid/describedby + aria-busy) |
 | Shell | `Shell.tsx` | DONE (Phase 2c: landmarks fixed; menu semantics carried from Phase 2b) |
-| Command palette | `CommandPalette.tsx` | FIX (palette-input focus ring) |
-| User menu | `UserMenu.tsx` | FIX (popover focus trap/initial focus) |
+| Command palette | `CommandPalette.tsx` | DONE (Phase 2b: focus ring via :focus-within; Phase 2e carried) |
+| User menu | `UserMenu.tsx` | DONE (Phase 2b: popover focus contract) |
 | Modal | `ui/Modal.tsx` | DONE (documented focus contract verified) |
-| ConfirmDialog | `ui/ConfirmDialog.tsx` | FIX (error state on throwing onConfirm) |
-| Toasts | `ui/Toasts.tsx` | FIX (44px floor on close/undo) |
-| Icons | `Icons.tsx` | FIX (IconAlert fill; EmptyState glyph reuse) |
+| ConfirmDialog | `ui/ConfirmDialog.tsx` | DONE (Phase 2b: error state on throwing onConfirm) |
+| Toasts | `ui/Toasts.tsx` | DONE (Phase 2a: 44px floor on close/undo) |
+| Icons | `Icons.tsx` | DONE (Phase 2e: IconAlert comment fixed; IconWhatsApp added) |
 | Clients list | `clients/ClientsList.tsx` | DONE (Phase 2d: chips aria-pressed; beacon role=status) |
 | Client detail | `clients/ClientDetail.tsx` | DONE (Phase 2d: financials data-table + row-link keyboard; tablist full ARIA) |
-| Client calendar | `clients/ClientCalendar.tsx` | FIX (mini grid keyboard nav — Phase 2e) |
-| Contact form | `clients/ContactForm.tsx` | FIX (aria-invalid/describedby; "Create anyway" double-click) |
-| Merge dialog | `clients/MergeDialog.tsx` | FIX (StrictMode double-create) |
+| Client calendar | `clients/ClientCalendar.tsx` | DONE (Phase 2e: mini grid roving-tabindex + arrow keys) |
+| Contact form | `clients/ContactForm.tsx` | DONE (Phase 2e: aria-invalid/describedby; "Create anyway" pending) |
+| Merge dialog | `clients/MergeDialog.tsx` | DONE (Phase 2e: StrictMode double-create ref guard) |
 | Invoices list | `invoices/InvoicesList.tsx` | DONE (Phase 2d: chips aria-pressed) |
 | Invoice detail | `invoices/InvoiceDetail.tsx` | DONE |
-| Invoice form | `invoices/InvoiceForm.tsx` | FIX (HIGH edit-mode bug; no `<form>`) |
-| Projects | `projects/*` | FIX (ImportRepoDialog effect; ProjectRepos Unlink pending) |
-| Notes | `notes/NoteComposer.tsx` | FIX (note-editor focus ring) |
-| Timeline | `timeline/Timeline.tsx` | FIX (sanitizer consideration) |
-| Meetings | `meetings/MeetingsPanel.tsx` | DONE (minor: `required` attr) |
-| Gmail | `gmail/*` | FIX (GmailSetupBlock rows[0]; ReplyBox skeleton; fire-and-forget) |
-| Integrations | `integrations/*` | FIX (WhatsApp emoji; status role; no-catch mutations) |
-| Settings | `settings/*` | FIX (Preferences loading/radio nav; dead class; no-catch) |
-| Custom fields | `customFields/*` | FIX (zero-option select; skeleton; fire-and-forget) |
-| Portal | `Portal.tsx` | FIX (role=alert on errors; redemption focus) |
+| Invoice form | `invoices/InvoiceForm.tsx` | DONE (Phase 2e: HIGH edit-mode bug; `<form onSubmit>` Enter submit) |
+| Projects | `projects/*` | DONE (Phase 2e: ImportRepoDialog effect; ProjectRepos Unlink pending+catch) |
+| Notes | `notes/NoteComposer.tsx` | DONE (Phase 2e: note-editor :focus-visible ring) |
+| Timeline | `timeline/Timeline.tsx` | DONE (sanitizer flagged, not a 2e defect) |
+| Meetings | `meetings/MeetingsPanel.tsx` | DONE (Phase 2e: remove catches) |
+| Gmail | `gmail/*` | DONE (Phase 2e: GmailSetupBlock per-group rows; ReplyBox skeleton; fire-and-forget) |
+| Integrations | `integrations/*` | DONE (Phase 2e: emoji→icons; status role=status; no-catch mutations) |
+| Settings | `settings/*` | DONE (Phase 2e: Preferences loading/radio nav; dead class; no-catch) |
+| Custom fields | `customFields/*` | DONE (Phase 2e: zero-option guard; skeleton; error toast) |
+| Portal | `Portal.tsx` | DONE (Phase 2e: role=alert errors; redemption focus → heading) |
 | Calendar | `Calendar.tsx` | DONE (Phase 2d: grid roving-tabindex + arrow keys; chips aria-label) |
 | Inbox | `Inbox.tsx` | DONE |
 | Follow-ups | `FollowUps.tsx` | DONE (Phase 2d: pending/disabled, spinner, error toast, Dismiss toasts) |
 | Loader / EmptyState / NotFound / ErrorBoundary | — | DONE (Phase 2a: EmptyState imports IconClients; loader-pulse signal-bar) |
-| App / main / lib / hooks | — | FIX (stale comment; formatMoney en-NG confirm) |
+| App / main / lib / hooks | — | DONE (Phase 2e: format.ts stale comment fixed; en-NG confirmed deliberate) |
 
 ## Verification baseline (pre-fix)
 - Vitest: 176/176 (23 files). Playwright: 28/28 (smoke, mobile-regression, palette, modal-focus, fuzzy).

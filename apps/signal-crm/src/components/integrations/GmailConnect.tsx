@@ -19,6 +19,7 @@ export function GmailConnect() {
   const setTriage = useMutation(api.triage.setTriageEnabled);
   const { push } = useToasts();
   const [connecting, setConnecting] = useState(false);
+  const [triagePending, setTriagePending] = useState(false);
 
   if (status === undefined || triage === undefined) {
     return <div className="skeleton" style={{ height: 110 }} aria-hidden="true" />;
@@ -36,8 +37,23 @@ export function GmailConnect() {
   };
 
   const doDisconnect = async () => {
-    await disconnect();
-    push({ message: "Gmail disconnected" });
+    try {
+      await disconnect();
+      push({ message: "Gmail disconnected" });
+    } catch {
+      push({ message: "Could not disconnect Gmail." });
+    }
+  };
+
+  const doSetTriage = async (enabled: boolean) => {
+    setTriagePending(true);
+    try {
+      await setTriage({ enabled });
+    } catch {
+      push({ message: "Could not update triage." });
+    } finally {
+      setTriagePending(false);
+    }
   };
 
   return (
@@ -56,7 +72,7 @@ export function GmailConnect() {
                 : "Not connected."}
           </div>
         </div>
-        {status.connected && <span className="status status-active">connected</span>}
+        {status.connected && <span className="status status-active" role="status">connected</span>}
       </div>
       <div className="integration-actions">
         {status.connected ? (
@@ -76,8 +92,8 @@ export function GmailConnect() {
           <input
             type="checkbox"
             checked={triage.enabled}
-            disabled={!triage.configured}
-            onChange={(e) => void setTriage({ enabled: e.target.checked })}
+            disabled={!triage.configured || triagePending}
+            onChange={(e) => void doSetTriage(e.target.checked)}
           />
           <span>AI message triage (spam / important) — rule-based first, LLM only for the ambiguous remainder, daily-capped (§20.14)</span>
         </label>

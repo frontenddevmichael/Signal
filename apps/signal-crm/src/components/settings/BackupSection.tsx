@@ -19,7 +19,7 @@ export function BackupSection() {
       ) : (
         <div className="integration-card surface-card card-hover">
           <div className="integration-head">
-            <span className={`status ${status.configured ? "status-active" : ""}`}>
+            <span className={`status ${status.configured ? "status-active" : ""}`} role="status">
               {status.configured ? "configured" : "not configured"}
             </span>
             <div>

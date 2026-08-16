@@ -49,7 +49,7 @@ export function GithubConnect({ installationId }: { installationId: string | nul
                 : "Not connected."}
           </div>
         </div>
-        {connected && <span className="status status-active">connected</span>}
+        {connected && <span className="status status-active" role="status">connected</span>}
       </div>
       <div className="integration-actions">
         {connected ? (

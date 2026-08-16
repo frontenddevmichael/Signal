@@ -868,6 +868,74 @@ test.describe("Phase 2d screen contracts", () => {
   });
 });
 
+test.describe("Phase 2e keyboard contracts", () => {
+  test("settings: theme radiogroup — roving radio focus, arrows activate + move", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/settings");
+    const group = page.locator('[role="radiogroup"][aria-label="Theme"]');
+    await expect(group).toBeVisible({ timeout: 15_000 });
+
+    const radios = group.getByRole("radio");
+    await expect(radios).toHaveCount(3);
+
+    // Roving tabindex: exactly one checked radio is in the tab order.
+    const checked = group.locator('[role="radio"][aria-checked="true"]');
+    await expect(checked).toHaveAttribute("tabindex", "0");
+    const orders = await radios.evaluateAll((els) => els.map((el) => el.getAttribute("tabindex")));
+    expect(orders.filter((t) => t === "0")).toHaveLength(1);
+
+    // An arrow moves focus AND activates the adjacent option (instant apply).
+    const checkedLabel = (await checked.textContent()) ?? "";
+    await checked.focus();
+    await page.keyboard.press("ArrowRight");
+    const focusedLabel = (await page.locator(":focus").textContent()) ?? "";
+    expect(["System", "Light", "Dark"]).toContain(focusedLabel);
+    expect(focusedLabel).not.toBe(checkedLabel);
+    await expect(group.locator('[role="radio"][aria-checked="true"]')).toHaveText(focusedLabel);
+
+    // End jumps to the last option; the roving entry moves with activation.
+    const lastLabel = (await radios.last().textContent()) ?? "";
+    await page.keyboard.press("End");
+    expect(await page.locator(":focus").textContent()).toBe(lastLabel);
+    await expect(radios.last()).toHaveAttribute("aria-checked", "true");
+    await expect(radios.last()).toHaveAttribute("tabindex", "0");
+  });
+
+  test("client mini-calendar: grid arrow navigation mirrors the full calendar", async ({ page }) => {
+    await signIn(page);
+    // Standalone — no dependency on the fixture client: open any client detail
+    // (the DB is guaranteed to hold at least the fixture's own client, but the
+    // first row works regardless of seed order).
+    await page.goto("/");
+    await page.locator(".client-name").first().waitFor({ timeout: 15_000 });
+    await page.locator(".client-name").first().click();
+    await page.locator(".mini-cal .cal-grid").waitFor({ state: "visible", timeout: 15_000 });
+    const grid = page.locator(".mini-cal .cal-grid");
+    expect(await grid.locator(".cal-cell").count()).toBe(42);
+
+    // Today's cell is the roving entry point — its cell has the tab stop.
+    const today = grid.locator(".cal-cell.today");
+    await expect(today).toHaveCount(1);
+    await expect(today).toHaveAttribute("tabindex", "0");
+
+    const idx = async () =>
+      page.evaluate(() => {
+        const cells = Array.from(document.querySelectorAll(".mini-cal .cal-cell"));
+        return cells.indexOf(document.activeElement as HTMLElement);
+      });
+
+    await today.focus();
+    const start = await idx();
+    await page.keyboard.press("ArrowRight");
+    expect(await idx()).toBe(Math.min(41, start + 1));
+
+    // Home → the row start; ArrowUp clamps to the grid, never escaping it.
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowUp");
+    expect((await idx()) % 7).toBe(0);
+  });
+});
+
 function expectedInvoicePath(url: string): string {
   const m = url.match(/\/invoices\/([^/]+)/);
   return m ? `\\/invoices\\/${m[1]}` : "^\\/invoices\\/";

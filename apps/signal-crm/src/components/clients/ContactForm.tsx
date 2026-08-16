@@ -129,7 +129,7 @@ export function ContactForm({
           }}
           noValidate
         >
-          <div className="field">
+          <div className={`field${error ? " field-error" : ""}`}>
             <label htmlFor="cf-name" className="required">Name</label>
             <input
               id="cf-name"
@@ -137,6 +137,8 @@ export function ContactForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              aria-invalid={error !== null}
+              aria-describedby={error ? "cf-error" : undefined}
             />
           </div>
           <div className="field-row">
@@ -256,7 +258,7 @@ export function ContactForm({
           </fieldset>
 
           {error && (
-            <div className="field-error-message" role="alert" style={{ marginBottom: 12 }}>
+            <div id="cf-error" className="field-error-message" role="alert" style={{ marginBottom: 12 }}>
               {error}
             </div>
           )}
@@ -280,11 +282,11 @@ export function ContactForm({
             record into it, or create it anyway as a separate client?
           </p>
           <div className="modal-actions">
-            <button type="button" className="btn btn-ghost" onClick={() => setDuplicate(null)}>
+            <button type="button" className="btn btn-ghost" onClick={() => setDuplicate(null)} disabled={pending}>
               Cancel
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => void submit(true)}>
-              Create anyway
+            <button type="button" className="btn btn-ghost" onClick={() => void submit(true)} disabled={pending}>
+              {pending ? "Creating…" : "Create anyway"}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => setMergeOpen(true)}>
               Merge…

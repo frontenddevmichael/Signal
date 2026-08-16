@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -33,12 +33,16 @@ export function ImportRepoDialog({
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [result, setResult] = useState<{ repos: PickerRepo[]; error: string | null } | null>(null);
 
-  // Load lazily on first open so we don't hit the GitHub API on every render.
-  const [loaded, setLoaded] = useState(false);
-  if (!loaded) {
-    setLoaded(true);
+  // Load lazily on first open — a render-phase `setLoaded(true)` +
+  // `loadRepos()` would dispatch the GitHub API call DURING render and fire
+  // it TWICE under StrictMode (the audit's defect). Effect + ref guard: the
+  // call fires exactly once, after mount, never during render.
+  const loadedOnce = useRef(false);
+  useEffect(() => {
+    if (loadedOnce.current) return;
+    loadedOnce.current = true;
     void loadRepos().then(setResult);
-  }
+  }, [loadRepos]);
 
   const repos = result?.repos ?? [];
   const error = result?.error ?? null;

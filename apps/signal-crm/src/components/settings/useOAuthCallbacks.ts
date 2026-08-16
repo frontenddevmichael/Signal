@@ -24,10 +24,12 @@ export function useOAuthCallbacks() {
     if (!installIdParam) return;
     const id = Number(installIdParam);
     if (Number.isFinite(id)) {
-      void storeInstallation({ installationId: id }).then(() => setJustConnected(true));
+      void storeInstallation({ installationId: id })
+        .then(() => setJustConnected(true))
+        .catch(() => push({ message: "Could not store the GitHub installation." }));
     }
     setSearchParams({}, { replace: true }); // strip the param
-  }, [searchParams, storeInstallation, setSearchParams]);
+  }, [searchParams, storeInstallation, setSearchParams, push]);
 
   // §17 — the OAuth callback redirects back with ?gmail=connected|error&msg=…
   useEffect(() => {

@@ -67,9 +67,14 @@ export function InvoiceForm({
   const projects = useQuery(api.projects.listByContact, { contactId: (contactId || "_") as any }) ?? [];
   const suggestions = useQuery(api.invoices.suggestedLineItems, { projectId: (projectId || "_") as any }) ?? [];
 
+  // In CREATE mode the project is re-parented on contact change — clear it so
+  // the user never bills a project that belongs to another client. In EDIT
+  // mode the invoice is bound to its project of origin (no re-parenting), so
+  // the project must NEVER be cleared on mount — the audit's HIGH dead-end:
+  // an unmounted effect here wiped the locked project and left Save disabled.
   useEffect(() => {
-    setProjectId("");
-  }, [contactId]);
+    if (!editing) setProjectId("");
+  }, [contactId, editing]);
 
   const pickedSuggestions = suggestions.filter((s) => {
     const manual = manualItems.find((m) => m.activityId === s.activityId);
@@ -140,15 +145,24 @@ export function InvoiceForm({
 
   return (
     <Modal open onClose={onClose} title={editing ? "Edit invoice" : "New invoice"} width={640}>
-      <div className="field">
-        <label htmlFor="iv-contact" className="required">Client</label>
-        <select id="iv-contact" className="input" value={contactId} onChange={(e) => setContactId(e.target.value)} disabled={editing}>
-          <option value="">—</option>
-          {(contacts ?? []).map((c) => (
-            <option key={c._id} value={c._id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* A real form: Enter in any field submits (the audit's keyboard gap).
+          Every child button stays type="button" — only native form
+          submission (Enter) and the explicit primary click call submit(). */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        <div className="field">
+          <label htmlFor="iv-contact" className="required">Client</label>
+          <select id="iv-contact" className="input" value={contactId} onChange={(e) => setContactId(e.target.value)} disabled={editing}>
+            <option value="">—</option>
+            {(contacts ?? []).map((c) => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
       <div className="field">
         <label htmlFor="iv-project" className="required">Project</label>
         <select id="iv-project" className="input" value={projectId} onChange={(e) => setProjectId(e.target.value)} disabled={!contactId || editing}>
@@ -239,6 +253,7 @@ export function InvoiceForm({
           {pending ? (editing ? "Saving…" : "Creating…") : editing ? "Save changes" : "Create invoice"}
         </button>
       </div>
+      </form>
     </Modal>
   );
 }

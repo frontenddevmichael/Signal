@@ -16,7 +16,9 @@ export function ReplyBox({ contactId, to }: { contactId: Id<"contacts">; to: str
   const [body, setBody] = useState("");
   const [pending, setPending] = useState(false);
 
-  if (status === undefined) return null;
+  if (status === undefined) {
+    return <div className="reply-box surface-card"><div className="skeleton" style={{ height: 100 }} aria-hidden="true" /></div>;
+  }
 
   const connected = status.connected && status.configured;
   const canSend = connected && to !== null && body.trim().length > 0;
@@ -40,7 +42,7 @@ export function ReplyBox({ contactId, to }: { contactId: Id<"contacts">; to: str
       <div className="section-head">
         <h3>Reply</h3>
         {connected ? (
-          <span className="status status-active">gmail</span>
+          <span className="status status-active" role="status">gmail</span>
         ) : (
           <span className="muted">Gmail not connected — replies disabled</span>
         )}

@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { useConvexAuth } from "@convex-dev/auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { EmptyState } from "./EmptyState";
@@ -24,6 +24,7 @@ export function Portal() {
   const redeem = useMutation(api.portal.redeemPortalToken);
   const [redeemed, setRedeemed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const portalHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   // Redeem once on load — the token is single-use; a replayed link fails here.
   useEffect(() => {
@@ -35,9 +36,18 @@ export function Portal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // §2.4 focus management — when the portal content lands (successful redeem),
+  // move keyboard focus into the page heading so SR users land on the content
+  // instead of staying at the top of the shell chrome.
+  // (Declared after portalData, below, so the closure sees it initialized.)
+
   // All hooks above are unconditional (Rules of Hooks); the token-scoped query
   // is harmless on the picker (empty token → null).
   const portalData = useQuery(api.portal.data, { token });
+
+  useEffect(() => {
+    if (redeemed && portalData) portalHeadingRef.current?.focus();
+  }, [redeemed, portalData]);
 
   // §20.8 — portal dates render in the client's timezone, not the freelancer's.
   useEffect(() => {
@@ -54,16 +64,18 @@ export function Portal() {
   }
   if (error && !redeemed) {
     return (
-      <EmptyState
-        title={error === "already_used" ? "This link has already been used" : "Link expired"}
-        body={
-          error === "already_used"
-            ? "The magic link is single-use by design — request a new one from your freelancer."
-            : error === "expired"
-              ? "The link expired (15-minute window). Ask your freelancer for a fresh one."
-              : "This link isn't valid. Ask your freelancer for a new one."
-        }
-      />
+      <div role="alert">
+        <EmptyState
+          title={error === "already_used" ? "This link has already been used" : "Link expired"}
+          body={
+            error === "already_used"
+              ? "The magic link is single-use by design — request a new one from your freelancer."
+              : error === "expired"
+                ? "The link expired (15-minute window). Ask your freelancer for a fresh one."
+                : "This link isn't valid. Ask your freelancer for a new one."
+          }
+        />
+      </div>
     );
   }
   if (!redeemed || portalData === undefined) {
@@ -76,7 +88,7 @@ export function Portal() {
   return (
     <div className="page portal-page" style={{ maxWidth: 640 }}>
       <div className="page-head">
-        <h2>Client portal</h2>
+        <h2 ref={portalHeadingRef} tabIndex={-1}>Client portal</h2>
         <p className="muted" style={{ marginTop: 4 }}>
           {portalData.contactName}
         </p>

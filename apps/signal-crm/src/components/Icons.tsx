@@ -145,7 +145,9 @@ export function IconCheck(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Filled warning triangle — the §1.6 critical-status shape (never hue). */
+/** Warning triangle — the §1.6 critical-status shape (never hue). `fill`
+ *  stays "none" like the rest of the outline register; the exclamation renders
+ *  as the stroked segment below. */
 export function IconAlert(props: SVGProps<SVGSVGElement>) {
   return (
     <Svg {...props}>
@@ -244,5 +246,15 @@ export function IconGoogle(props: SVGProps<SVGSVGElement>) {
       <path fill="#FBBC05" d="M5.3 14.6c-.2-.7-.4-1.5-.4-2.6s.1-1.9.4-2.6l-3.9-3C.4 8.1 0 10 0 12s.4 3.9 1.4 5.6l3.9-3z" />
       <path fill="#EA4335" d="M12 4.7c2.3 0 3.8 1 4.7 1.8l3.3-3.2C18 1.2 15.2 0 12 0 7.4 0 3.5 2.7 1.4 6.4l3.9 3c.9-2.8 3.6-4.7 6.7-4.7z" />
     </svg>
+  );
+}
+
+/** WhatsApp chat bubble (§10 settings card) — keeps the 1.5px/round register. */
+export function IconWhatsApp(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Svg {...props}>
+      <path d="M21 11.5a8.5 8.5 0 0 1-12.5 7.4L3 21l2.1-5.6A8.5 8.5 0 1 1 21 11.5z" />
+      <path d="M8.5 10.5h7M8.5 14h4.5" />
+    </Svg>
   );
 }

@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { useToasts } from "../ui/useToasts";
 
 /**
  * §20.4 — custom_field_values rendered and edited per entity wherever
@@ -17,8 +19,22 @@ export function CustomFieldsEditor({
     entityId,
   });
   const setValue = useMutation(api.customFields.setValue);
+  const { push } = useToasts();
 
-  if (rows === undefined) return null;
+  const save = async (
+    definitionId: Id<"customFieldDefinitions">,
+    fieldValue: string,
+  ) => {
+    try {
+      await setValue({ definitionId, entityType, entityId, fieldValue });
+    } catch {
+      push({ message: "Could not save that value." });
+    }
+  };
+
+  if (rows === undefined) {
+    return <div className="skeleton" style={{ height: 40 }} aria-hidden="true" />;
+  }
 
   return (
     <div className="custom-fields">
@@ -34,12 +50,7 @@ export function CustomFieldsEditor({
                 className="input"
                 defaultValue={value ?? ""}
                 onChange={(e) => {
-                  void setValue({
-                    definitionId: definition._id,
-                    entityType,
-                    entityId,
-                    fieldValue: e.target.value,
-                  });
+                  void save(definition._id, e.target.value);
                 }}
               >
                 <option value="">—</option>
@@ -54,12 +65,7 @@ export function CustomFieldsEditor({
                 type={definition.fieldType === "date" ? "date" : definition.fieldType === "number" ? "number" : "text"}
                 defaultValue={value ?? ""}
                 onBlur={(e) => {
-                  void setValue({
-                    definitionId: definition._id,
-                    entityType,
-                    entityId,
-                    fieldValue: e.target.value,
-                  });
+                  void save(definition._id, e.target.value);
                 }}
               />
             )}

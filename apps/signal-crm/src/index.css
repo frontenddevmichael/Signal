@@ -3011,6 +3011,14 @@ select:disabled {
   color: var(--text-primary);
 }
 
+/* The editor div's `outline: none` (0,1,0, later in source) beats the global
+   :focus-visible ring (0,1,0). Restore it at higher specificity so keyboard
+   focus is never invisible on the note body (§8.9). */
+.note-editor:focus-visible {
+  outline: 2px solid var(--beacon);
+  outline-offset: 2px;
+}
+
 .note-editor p {
   margin: 0 0 8px;
 }
@@ -3271,6 +3279,17 @@ select:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* Icon-inline warning line (icon + wrapped text, top-aligned). */
+.warning-line {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.warning-line svg {
+  flex: none;
+  margin-top: 2px;
 }
 
 .repo-picker,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useToasts } from "../ui/useToasts";
@@ -29,6 +29,8 @@ export function PreferencesSection() {
 
   // Draft state so the theme applies on click, and timezone on explicit Save.
   const [timezoneDraft, setTimezoneDraft] = useState<string | null>(null);
+  const [savingTz, setSavingTz] = useState(false);
+  const themeRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const theme: ThemePreference = myUser?.themePreference ?? "dark";
   const timezone = timezoneDraft ?? myUser?.timezone ?? defaultTimezone();
@@ -42,12 +44,32 @@ export function PreferencesSection() {
   };
 
   const doSaveTimezone = async () => {
+    setSavingTz(true);
     try {
       await updateTimezone({ timezone });
       setTimezoneDraft(null);
       push({ message: `Timezone set to ${timezone}` });
     } catch {
       push({ message: "Could not update timezone." });
+    } finally {
+      setSavingTz(false);
+    }
+  };
+
+  // §2.4 radio-group keyboard nav — arrows (with the arrow-axis fallback),
+  // Home/End, roving tabindex (only the checked option is in the tab order).
+  // Arrows both activate AND focus the next option, per the radio-group
+  // pattern — theme changes are instant, so this is activation, not preview.
+  const onThemeKey = (e: React.KeyboardEvent, idx: number) => {
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % THEME_OPTIONS.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (idx - 1 + THEME_OPTIONS.length) % THEME_OPTIONS.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = THEME_OPTIONS.length - 1;
+    if (next !== null) {
+      e.preventDefault();
+      void doTheme(THEME_OPTIONS[next].value);
+      themeRefs.current[next]?.focus();
     }
   };
 
@@ -59,14 +81,19 @@ export function PreferencesSection() {
       <div className="field">
         <label>Theme</label>
         <div className="pref-theme-row" role="radiogroup" aria-label="Theme">
-          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+          {THEME_OPTIONS.map(({ value, label, icon: Icon }, i) => (
             <button
               key={value}
+              ref={(el) => {
+                themeRefs.current[i] = el;
+              }}
               type="button"
               role="radio"
               aria-checked={theme === value}
+              tabIndex={theme === value ? 0 : -1}
               className={`chip${theme === value ? " chip-active" : ""}`}
               onClick={() => void doTheme(value)}
+              onKeyDown={(e) => onThemeKey(e, i)}
             >
               <Icon width={16} height={16} />
               {label}
@@ -98,9 +125,9 @@ export function PreferencesSection() {
             type="button"
             className="btn btn-primary btn-sm"
             onClick={() => void doSaveTimezone()}
-            disabled={timezoneDraft === null}
+            disabled={timezoneDraft === null || savingTz}
           >
-            Save
+            {savingTz ? "Saving…" : "Save"}
           </button>
         </div>
       </div>

@@ -35,6 +35,13 @@ export function CustomFieldsSection() {
     e.preventDefault();
     setPending(true);
     setError(null);
+    // §20.4 — a `select` field with no options is created broken (nothing to
+    // pick later). Require at least one option before the mutation runs.
+    if (fieldType === "select" && !optionsText.trim()) {
+      setError("Select fields need at least one option.");
+      setPending(false);
+      return;
+    }
     try {
       const options =
         fieldType === "select"
@@ -54,9 +61,13 @@ export function CustomFieldsSection() {
 
   const doDelete = async () => {
     if (!deleteTarget) return;
-    await deleteDefinition({ definitionId: deleteTarget._id as Id<"customFieldDefinitions"> });
-    push({ message: `Deleted “${deleteTarget.label}”` });
-    setDeleteTarget(null);
+    try {
+      await deleteDefinition({ definitionId: deleteTarget._id as Id<"customFieldDefinitions"> });
+      push({ message: `Deleted “${deleteTarget.label}”` });
+      setDeleteTarget(null);
+    } catch {
+      push({ message: "Could not delete that field." });
+    }
   };
 
   return (

@@ -19,7 +19,7 @@ export function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="detail-section settings-section">
+    <section className="detail-section">
       <div className="section-head">
         <h3>{title}</h3>
         {action}
