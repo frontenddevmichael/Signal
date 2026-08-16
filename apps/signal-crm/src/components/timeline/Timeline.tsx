@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { timeUntil } from "../../lib/format";
+import { sanitizeHtml } from "../../../convex/sanitizeHtml";
 import { EmptyState } from "../EmptyState";
 
 const TYPE_META: Record<string, { label: string; glyph: string }> = {
@@ -17,11 +18,15 @@ function NoteBody({ sourceId }: { sourceId: string }) {
   // §14 — a timeline event is a projection; the note body lives in notes.
   const note = useQuery(api.notes.getById, { noteId: sourceId as any });
   if (!note) return <p className="timeline-note-body skeleton" aria-hidden="true" />;
+  // §18 choke point — notes are sanitized at WRITE (convex/notes.create) and
+  // re-sanitized here at RENDER so a row that bypassed the write path (merge
+  // replay, undo restore, future importers, direct edits) can never inject
+  // non-allowlisted markup. Defense in depth, same single allowlist.
   return (
     <div
       className="timeline-note-body"
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: note.body }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.body) }}
     />
   );
 }

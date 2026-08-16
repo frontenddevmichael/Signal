@@ -170,10 +170,11 @@ Phases:
   `convex/sessions.ts` no-useless-catch warning, backend untouched), vite build green,
   Playwright 36/36 (smoke + mobile-regression incl. Phase 2b overlay contracts, Phase 2d
   screen contracts, Phase 2e keyboard contracts). Every one of the 27 audit defects is
-  closed except three confirmed/deliberate flags: `formatMoney` en-NG (Nigeria primary
-  market), Timeline `dangerouslySetInnerHTML` (self-trust editor boundary; sanitizer
-  module exists for webhook content), and the `settings-section` radius /
-  `.chip` 999px design confirmations. All committed on `feat/quiet-future-os-rebuild`:
+  closed except two confirmed/deliberate flags: `formatMoney` en-NG (Nigeria primary
+  market) and the `settings-section` radius / `.chip` 999px design confirmations.
+  Follow-up (2026-08-16): Timeline note rendering now also re-sanitizes at render — the
+  last open hardening flag — so the audit list is fully closed. All committed on
+  `feat/quiet-future-os-rebuild`:
   `ceb53f3` 2a · `4abf252` 2b · `accc7b5` 2c · `704d394` 2d · `2214445` 2e · `fe270a1` 3.
 
 Phase 2a verified: `tsc --noEmit` clean, vitest green, `vite build` green, `oxlint` 0/0, Playwright 28/28,
@@ -215,7 +216,7 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 - [x] **Status spans without `role="status"`** (BackupSection, GithubConnect, GmailConnect connected states).
 - [ ] **`formatMoney` hardcodes `en-NG`** for every currency (`lib/format.ts`) — confirm intent. (DELIBERATE: Nigeria is the PRD primary market; en-NG narrowSymbol renders the currency correctly for USD amounts. Flagged, not changed.)
 - [x] **Stale comment** `lib/format.ts:5` ("browser default … later pass") — timezone preference shipped in Phase 5.
-- [ ] **Timeline note rendering `dangerouslySetInnerHTML`** (`timeline/Timeline.tsx`) — implicit trust boundary; consider sanitizer. (FLAGGED — notes come from the freelancer's own TipTap editor, self-trust boundary; a sanitizer module already exists in the codebase for webhook content, noted for a future pass.)
+- [x] **Timeline note rendering `dangerouslySetInnerHTML`** (`timeline/Timeline.tsx`) — implicit trust boundary; consider sanitizer. Notes were already sanitized at WRITE (`convex/notes.ts` → `sanitizeHtml`); 2026-08-16: re-sanitized at RENDER in `NoteBody` so any row that bypasses the write path (merge replay, undo restore, future importers, direct edits) stays inert. Same single allowlist, zero new deps.
 - [ ] **`settings-section` raw `8px` radius / `.chip` `border-radius: 999px`** off the radius scale (design choices to confirm).
 
 ## Unit status
