@@ -92,5 +92,30 @@ test.describe("hover-revealed quick actions on touch", () => {
       await row.locator(".quick-action").click();
       await expect(page).toHaveURL(/\/clients\//);
     });
+
+    test("touch-label word shows on coarse pointers (icon-only never silent)", async ({ page }) => {
+      const session = await page.context().newCDPSession(page);
+      await session.send("Emulation.setEmulatedMedia", {
+        features: [
+          { name: "hover", value: "none" },
+          { name: "any-hover", value: "none" },
+          { name: "pointer", value: "coarse" },
+          { name: "any-pointer", value: "coarse" },
+        ],
+      });
+
+      await signIn(page);
+      await ensureRow(page);
+
+      // The row's quick-action chevron carries a visible word on touch.
+      const qa = page.locator(".data-table tbody tr").first().locator(".quick-action");
+      const label = qa.locator(".touch-label");
+      await expect(label).toBeVisible();
+      await expect(label).toHaveText("Open");
+      // …and the pill widens to hold it (no longer a 28px bare icon).
+      const width = await qa.evaluate((el) => Math.round(el.getBoundingClientRect().width));
+      expect(width).toBeGreaterThan(28);
+    });
   });
 });
+

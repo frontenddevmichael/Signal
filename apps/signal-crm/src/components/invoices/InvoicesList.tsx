@@ -246,6 +246,8 @@ export function InvoicesList() {
                         title="Open"
                       >
                         <IconChevronRight width={16} height={16} />
+                        {/* §5.6 — visible on touch where hover tooltips don't exist. */}
+                        <span className="touch-label">Open</span>
                       </Link>
                     </span>
                   </td>

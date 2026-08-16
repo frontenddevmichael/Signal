@@ -62,6 +62,8 @@ export function NoteComposer({
           aria-label="Bold"
         >
           <strong>B</strong>
+          {/* §5.6 — the glyph is a guess on touch; the word shows there. */}
+          <span className="touch-label">Bold</span>
         </button>
         <button
           type="button"
@@ -71,6 +73,7 @@ export function NoteComposer({
           aria-label="Italic"
         >
           <em>I</em>
+          <span className="touch-label">Italic</span>
         </button>
         <button
           type="button"
@@ -80,6 +83,7 @@ export function NoteComposer({
           aria-label="Bullet list"
         >
           •≡
+          <span className="touch-label">Bullet list</span>
         </button>
         <button
           type="button"
@@ -89,6 +93,7 @@ export function NoteComposer({
           aria-label="Heading"
         >
           H
+          <span className="touch-label">Heading</span>
         </button>
       </div>
       <EditorContent editor={editor} />

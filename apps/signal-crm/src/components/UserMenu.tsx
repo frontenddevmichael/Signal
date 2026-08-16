@@ -158,6 +158,8 @@ export function UserMenu({
                   }}
                 >
                   <IconCopy width={14} height={14} />
+                  {/* §5.6 — visible on touch where hover tooltips don't exist. */}
+                  <span className="touch-label">Copy</span>
                 </button>
               )}
             </div>

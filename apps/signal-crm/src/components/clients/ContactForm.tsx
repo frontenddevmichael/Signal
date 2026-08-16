@@ -209,6 +209,8 @@ export function ContactForm({
                     strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                     <path d="M6 6l12 12M18 6L6 18" />
                   </svg>
+                  {/* §5.6 — visible on touch where hover tooltips don't exist. */}
+                  <span className="touch-label">Remove</span>
                 </button>
               </div>
             ))}
@@ -249,6 +251,8 @@ export function ContactForm({
                     strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                     <path d="M6 6l12 12M18 6L6 18" />
                   </svg>
+                  {/* §5.6 — visible on touch where hover tooltips don't exist. */}
+                  <span className="touch-label">Remove</span>
                 </button>
               </div>
             ))}
