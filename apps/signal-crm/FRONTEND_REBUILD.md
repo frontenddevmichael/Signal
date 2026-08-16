@@ -107,8 +107,30 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
   absolute nav-count). Behavior-neutral (shell was already audit-clean,
   same as 2a-ii): selectors/tokens unchanged, comments refreshed, stray
   blank lines before closing braces cleaned. Verified: tsc clean,
-  206/206 vitest, 42/42 Playwright single-worker (all shell/nav/mobile
+  206/206 vitest, 42/42 Playwright single-worker  (all shell/nav/mobile
   contracts pass). Committed on `feat/quiet-future-os-rebuild`.
+- **2d screens (start) — Follow-ups + Inbox rows — DONE (2026-08-16)**: the
+  audit's "flat rows" claim was stale on arrival — both screens' rows already
+  ride the shared card register (`.surface-card` elevation/radius,
+  `.card-hover` lift, `card-rise` stagger entrance via `.nudge-list > *` /
+  `.inbox-list > *`). The genuine old-era remnant was the layout tail block
+  itself: single-line pre-v3 rules with legacy `--text-2` aliases. Rebuilt it
+  fresh from tokens (`--text-secondary`, multi-line, §-mapped comments), added
+  `min-width: 0` to `.nudge-body` (the flex overflow bug class — long reasons
+  now wrap instead of pushing the action row off the card), and a ≤480px wrap
+  guard so `.nudge-row` actions and `.inbox-head` stack gracefully at
+  320-360px. New permanent guard `tests/followups-inbox-rows.spec.ts`: 390px,
+  no horizontal overflow on either screen, wrap guard + min-width:0 asserted
+  live when rows exist (data-conditional so fresh deployments stay green).
+  Also hardened two specs whose default 5s waits raced mutation-driven
+  updates under the loaded dev backend, matching the suite's 15s convention:
+  smoke toast check (`Note added`) and quick-actions `ensureRow` (now waits
+  for the table to load before deciding to seed, then 15s for the row).
+  ENV NOTE: the local Convex backend degraded after ~8h uptime (reads fine,
+  mutations >5s — caught via the contact-create modal stuck pending;
+  radiogroup/smoke/quick-actions all flaked on it). Restarted the backend
+  binary in place (data intact, verified listening 3210/3211) → full suite
+  43/43 green. Committed `f220904` on `feat/quiet-future-os-rebuild`.
 - **2a-ii chrome primitives — DONE (2026-08-16)**: rebuilt the button register
   (`.btn` + primary/ghost/danger/danger-ghost/`-sm`), `.icon-btn`, `.kbd`,
   `.chip`, `.card-hover` gate, `.avatar`/`.avatar-lg`, `.tag-chip`,
