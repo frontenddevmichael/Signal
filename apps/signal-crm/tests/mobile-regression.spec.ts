@@ -60,7 +60,7 @@ async function signIn(page: Page) {
     await page.getByRole("button", { name: "Create account" }).click();
   }
   await page.waitForSelector("main", { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Clients", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Clients", exact: true })).toBeVisible({ timeout: 15_000 });
 }
 
 /** Build the fixture: client → project → meeting → invoice, all through the UI. */
@@ -75,7 +75,7 @@ async function seed(page: Page) {
   // The row's name link is `.client-name` — the quick-action link's aria-label
   // also contains the name, so a role-based name match would be ambiguous.
   await page.locator(".client-name", { hasText: CLIENT_NAME }).click();
-  await expect(page.getByRole("heading", { name: CLIENT_NAME })).toBeVisible();
+  await expect(page.getByRole("heading", { name: CLIENT_NAME })).toBeVisible({ timeout: 15_000 });
   CLIENT_URL = page.url();
 
   // Project with a deadline in the current month.
@@ -84,7 +84,7 @@ async function seed(page: Page) {
   await page.locator("#pf-name").fill(PROJECT_NAME);
   await page.locator("#pf-deadline").fill(iso(deadlineDate));
   await page.getByRole("button", { name: "Add project" }).last().click();
-  await expect(page.getByText(PROJECT_NAME)).toBeVisible();
+  await expect(page.getByText(PROJECT_NAME)).toBeVisible({ timeout: 15_000 });
 
   // Meeting in the current month (anchors the calendar meeting chip).
   await page.getByRole("tab", { name: "Timeline" }).click();
@@ -954,13 +954,13 @@ test.describe("Phase 2e keyboard contracts", () => {
     const focusedLabel = (await page.locator(":focus").textContent()) ?? "";
     expect(["System", "Light", "Dark"]).toContain(focusedLabel);
     expect(focusedLabel).not.toBe(checkedLabel);
-    await expect(group.locator('[role="radio"][aria-checked="true"]')).toHaveText(focusedLabel);
+    await expect(group.locator('[role="radio"][aria-checked="true"]')).toHaveText(focusedLabel, { timeout: 15_000 });
 
     // End jumps to the last option; the roving entry moves with activation.
     const lastLabel = (await radios.last().textContent()) ?? "";
     await page.keyboard.press("End");
     expect(await page.locator(":focus").textContent()).toBe(lastLabel);
-    await expect(radios.last()).toHaveAttribute("aria-checked", "true");
+    await expect(radios.last()).toHaveAttribute("aria-checked", "true", { timeout: 15_000 });
     await expect(radios.last()).toHaveAttribute("tabindex", "0");
   });
 

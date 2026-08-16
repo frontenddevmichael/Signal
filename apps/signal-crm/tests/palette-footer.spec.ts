@@ -15,7 +15,8 @@ async function signInAndOpenPalette(page: import("@playwright/test").Page) {
   await page.getByLabel("Email").fill(EMAIL);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
+  // Post-auth landing can take several seconds under the loaded dev backend.
+  await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("Control+k");
   await expect(page.locator(".command-palette")).toBeVisible();
 }

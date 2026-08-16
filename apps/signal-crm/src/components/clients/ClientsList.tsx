@@ -30,13 +30,15 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "outstandingBalance", label: "Outstanding" },
 ];
 
-/* trailing non-sortable column holding the hover-revealed quick actions */
+/* Trailing non-sortable column holding the hover-revealed quick actions
+   (§2.6) — never a sort control, hence off the sortable columns list. */
 const QUICK_COL: { key: string; label: string } = { key: "quick", label: "" };
 
 /**
  * §13 table view — sortable/filterable columns; the view solo freelancers use
  * day to day. Sort is three-state (asc/desc/none, §22.14); filter bar above
- * the table (status); §20.5 keyword search on name/company.
+ * the table (status); §20.5 keyword search on name/company. The list carries
+ * the §14 health beacon on stale relationships (§23.5), not just detail.
  */
 export function ClientsList() {
   const contacts = useQuery(api.contacts.list, {});

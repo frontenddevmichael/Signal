@@ -3481,17 +3481,86 @@ select:disabled {
 .print-total td { font-weight: 700; border-bottom: none; }
 .print-doc .muted { color: #555; }
 
-/* Phase 4 — Gmail setup + reply box */
-.gmail-setup { padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
-.copy-block { display: flex; flex-direction: column; gap: 6px; }
-.copy-row { display: flex; align-items: center; gap: 8px; }
-.copy-text { flex: 1; font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; }
-.gmail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.field-note { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
-.reply-box { padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
-.reply-input { width: 100%; resize: vertical; font-family: var(--mono); font-size: 13px; }
-.integration-sub { border-top: 1px solid var(--border); padding-top: 12px; }
-.row-label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-2); }
+/* ---- §17 Gmail setup + reply box -----------------------------
+   Rebuilt onto the token register: radius via --radius-control
+   (never raw 8px), border via --border-default, text via the
+   canonical aliases. The copy blocks are literal config values
+   (filter text, forwarding address, codes) — mono is data there,
+   per §1.2's numeral/data reservation; the reply COMPOSITION box
+   is body prose and stays on the input register's face (§1.2). */
+.gmail-setup {
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.copy-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.copy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-text {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  padding: 8px 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.gmail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.field-note {
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.reply-box {
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reply-input {
+  width: 100%;
+  resize: vertical;
+  font-size: 13px;
+}
+
+.integration-sub {
+  border-top: 1px solid var(--border-default);
+  padding-top: 12px;
+}
+
+.row-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
 
 /* ---- §3.4 list register — Follow-ups + Inbox rows ---------------
    The rows themselves ride the shared card register (surface-card
@@ -3601,9 +3670,32 @@ select:disabled {
   border-color: var(--status-inert-hue);
   opacity: 0.6;
 }
-.session-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.portal-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.portal-page .definition-row { display: flex; justify-content: space-between; align-items: center; }
+/* ---- sessions + portal lists ---------------------------------
+   Simple vertical stacks on the card register — same shape as the
+   definition lists, gap from the scale. */
+.session-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.portal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.portal-page .definition-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
 /* §23.8 — compact controls (.btn-sm, note-toolbar, toast actions) must
    still meet the 44px touch floor. Placed last so these win over the

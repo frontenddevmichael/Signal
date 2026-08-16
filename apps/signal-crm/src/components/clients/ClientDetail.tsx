@@ -74,7 +74,6 @@ export function ClientDetail() {
   const [mergePickerOpen, setMergePickerOpen] = useState(false);
   const [mergeWith, setMergeWith] = useState<string | null>(null);
   const [mergeQuery, setMergeQuery] = useState("");
-  const [, setDeletePending] = useState(false);
 
   const searchHits = useQuery(api.contacts.search, {
     term: mergeQuery.trim() || "___none___",
@@ -109,24 +108,21 @@ export function ClientDetail() {
   const statsCurrency = stats?.invoices?.[0]?.currency ?? "USD";
 
   const doDelete = async () => {
-    setDeletePending(true);
-    try {
-      const res = await removeContact({ contactId: contactId as any });
-      // §23.3 — delete is reversible within the toast window: re-insert the
-      // subtree and land back on the restored client.
-      push({
-        message: `${contact.name} deleted`,
-        undoLabel: "Undo",
-        onUndo: () => {
-          void undoDelete({ undoId: res.undoId })
-            .then((r) => navigate(`/clients/${r.contactId}`))
-            .catch(() => push({ message: "Could not restore the client." }));
-        },
-      });
-      navigate("/");
-    } finally {
-      setDeletePending(false);
-    }
+    // The ConfirmDialog owns the pending spinner while this runs; a throwing
+    // removeContact surfaces inline in the dialog (Phase 2b contract).
+    const res = await removeContact({ contactId: contactId as any });
+    // §23.3 — delete is reversible within the toast window: re-insert the
+    // subtree and land back on the restored client.
+    push({
+      message: `${contact.name} deleted`,
+      undoLabel: "Undo",
+      onUndo: () => {
+        void undoDelete({ undoId: res.undoId })
+          .then((r) => navigate(`/clients/${r.contactId}`))
+          .catch(() => push({ message: "Could not restore the client." }));
+      },
+    });
+    navigate("/");
   };
 
   return (

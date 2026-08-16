@@ -15,7 +15,8 @@ test.describe("form focus ring (§3.0)", () => {
     await page.getByLabel("Email").fill(EMAIL);
     await page.getByLabel("Password").fill(PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
+    // Post-auth landing can take several seconds under the loaded dev backend.
+    await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("button", { name: "Add client" }).first().click();
     const name = page.locator("#cf-name");

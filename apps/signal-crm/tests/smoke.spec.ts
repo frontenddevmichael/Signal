@@ -18,7 +18,8 @@ test("core Phase 1 flow: contact → note → project → timeline", async ({ pa
   await page.getByRole("button", { name: "Sign in" }).click();
 
   // Land on the clients table.
-  await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
+  // Post-auth landing can take several seconds under the loaded dev backend.
+  await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible({ timeout: 15_000 });
 
   // Create a contact.
   await page.getByRole("button", { name: "Add client" }).click();

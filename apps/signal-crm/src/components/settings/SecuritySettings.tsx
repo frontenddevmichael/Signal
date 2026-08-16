@@ -31,8 +31,13 @@ export function SecuritySettings() {
   const currentDeviceId = getDeviceId();
 
   const openDelete = async () => {
-    const status = await deletionStatus();
-    setActiveCount(status.activeInvoices ?? 0);
+    try {
+      const status = await deletionStatus();
+      setActiveCount(status.activeInvoices ?? 0);
+    } catch {
+      push({ message: "Could not check for active invoices." });
+      return;
+    }
     setDeleteOpen(true);
   };
 
@@ -97,14 +102,14 @@ export function SecuritySettings() {
                     <button
                       type="button"
                       className="btn btn-danger-ghost btn-sm"
-onClick={async () => {
-                    try {
-                      const r = await revokeSession({ deviceId: s.deviceId });
-                      push({ message: r.revoked ? "Session revoked" : "Session already revoked" });
-                    } catch {
-                      push({ message: "Could not revoke that session." });
-                    }
-                  }}
+                      onClick={async () => {
+                        try {
+                          const r = await revokeSession({ deviceId: s.deviceId });
+                          push({ message: r.revoked ? "Session revoked" : "Session already revoked" });
+                        } catch {
+                          push({ message: "Could not revoke that session." });
+                        }
+                      }}
                     >
                       Revoke
                     </button>

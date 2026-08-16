@@ -142,6 +142,40 @@ entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; scr
   `--on-beacon`/`--surface-raised`/`--radius-card`/`--shadow-card`/`--hairline`
   all resolve. Verified: tsc clean, 206/206 vitest, 42/42 Playwright.
   Committed on `feat/quiet-future-os-rebuild`.
+- **2d screens (rest) — Clients/ClientDetail/Invoices/InvoiceDetail/Calendar/
+  Portal/Settings + Gmail tail — DONE (2026-08-16)**: the screens were already
+  on the token register (InvoicesList was byte-identical to a fresh write —
+  the honest signal), so the genuine work was the audit's last LOW defect and
+  the real deltas found in the fresh-eyes pass:
+  - **Gmail setup + reply-box tail CSS REBUILT** (the LOW audit candidate,
+    index.css): single-line pre-v3 rules with raw 8px radii and the legacy
+    `--text-2` alias → token register (`--radius-control`, `--border-default`,
+    `--text-secondary`, multi-line §-mapped blocks). `.reply-input` mono
+    REMOVED — §1.2 reserves mono for numerals, never body prose; copy blocks
+    (config values: filter text, forwarding addresses, codes) keep `--mono`
+    as data. `.copy-text` font-size aligned 12.5px → 12px (code register).
+    `.session-list`/`.portal-list`/`.portal-page .definition-row` single-line
+    tail also rebuilt onto the register.
+  - **ClientDetail**: dead `[, setDeletePending]` state removed (set, never
+    read — the ConfirmDialog owns the pending spinner; a throwing
+    removeContact surfaces inline per the 2b contract).
+  - **SecuritySettings**: `openDelete` now catches `deletionStatus()` (was an
+    unhandled rejection — the Phase 3 zero-unhandled-rejections standard) →
+    error toast + no dialog; formatting glitch in the Revoke button's onClick
+    fixed.
+  - **Portal**: USD hardcode flagged, NOT changed — the portal query
+    (convex/portal.ts) doesn't return `currency`, so fixing the render needs
+    a backend-data change (out of scope for this visual rebuild).
+  - No Dashboard route exists (index → ClientsList) — nothing to rebuild;
+    verified the route map. ClientsList diff was comment-only (audit-clean).
+  - **Suite hardening**: the full-run flakes (smoke, radiogroup, quick-actions,
+    seed) were all the same class — default 5s waits racing auth/mutation
+    round-trips under the loaded dev backend (Convex restarted 17:16, still
+    slow under load). Aligned the four signIn "Clients" landings + the seed's
+    client/project-appear + the radiogroup's aria-checked assertions to the
+    suite's 15s convention. Verified: tsc clean, 206/206 vitest,
+    43/43 Playwright single-worker. Committed on
+    `feat/quiet-future-os-rebuild`.
 
 ## Audit result (2026-08-15, three parallel passes)
 
