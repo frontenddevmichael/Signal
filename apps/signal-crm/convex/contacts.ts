@@ -83,6 +83,9 @@ export const list = query({
         const lastEvent = await ctx.db
           .query("timelineEvents")
           .withIndex("by_contact", (q) => q.eq("contactId", c._id))
+          // A scheduled future meeting must not count as "last contact" —
+          // health, the list column, and follow-up math all derive from this.
+          .filter((q) => q.lte(q.field("occurredAt"), Date.now()))
           .order("desc")
           .first();
         const projects = await ctx.db
@@ -288,21 +291,30 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await userIdOrThrow(ctx);
 
-    // Duplicate check: any incoming email/phone that already exists anywhere.
+    // Duplicate check: any incoming email/phone that already exists for THIS user.
+    // The by_email/by_phone indexes are global, so a hit is only a duplicate when
+    // the owning contact is ours — otherwise another tenant's data would leak
+    // (their contactId + name) back to the caller.
     const duplicateIds = new Set<string>();
     for (const e of args.emails ?? []) {
       const hit = await ctx.db
         .query("contactEmails")
         .withIndex("by_email", (q) => q.eq("email", e.email.toLowerCase()))
         .first();
-      if (hit) duplicateIds.add(hit.contactId);
+      if (hit) {
+        const owner = await ctx.db.get(hit.contactId);
+        if (owner && owner.userId === userId) duplicateIds.add(hit.contactId);
+      }
     }
     for (const p of args.phones ?? []) {
       const hit = await ctx.db
         .query("contactPhones")
         .withIndex("by_phone", (q) => q.eq("phoneNumber", p.phoneNumber))
         .first();
-      if (hit) duplicateIds.add(hit.contactId);
+      if (hit) {
+        const owner = await ctx.db.get(hit.contactId);
+        if (owner && owner.userId === userId) duplicateIds.add(hit.contactId);
+      }
     }
     if (duplicateIds.size > 0 && !args.force) {
       const existing = await ctx.db.get([...duplicateIds][0] as GenericId<"contacts">);

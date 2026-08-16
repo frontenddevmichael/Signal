@@ -12,7 +12,7 @@
  * functions, not wrapped functions calling each other.
  */
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { verifyGithubSignature, extractActivity } from "./githubLogic";
 
 type MutationRunner = {
@@ -37,7 +37,7 @@ export async function handleGithubWebhook(
   }
 
   // 2. IDEMPOTENCY — already-processed deliveries get a benign ack.
-  const already = await ctx.runMutation(api.webhooks.githubMarkProcessed, {
+  const already = await ctx.runMutation(internal.webhooks.githubMarkProcessed, {
     provider: "github",
     externalId: deliveryId,
     checkOnly: true,
@@ -49,10 +49,10 @@ export async function handleGithubWebhook(
   // 3a. Installation lifecycle — §20.3.
   if (eventType === "installation") {
     if (payload.action === "deleted" || payload.action === "suspend") {
-      await ctx.runMutation(api.webhooks.githubInstallationRemoved, {
+      await ctx.runMutation(internal.webhooks.githubInstallationRemoved, {
         installationId: payload.installation?.id,
       });
-      await ctx.runMutation(api.webhooks.githubMarkProcessed, {
+      await ctx.runMutation(internal.webhooks.githubMarkProcessed, {
         provider: "github",
         externalId: deliveryId,
         checkOnly: false,
@@ -64,9 +64,9 @@ export async function handleGithubWebhook(
   if (eventType === "installation_repositories" && payload.action === "removed") {
     const repoIds: number[] = (payload.repositories_removed ?? []).map((r: any) => r.id);
     for (const repoId of repoIds) {
-      await ctx.runMutation(api.webhooks.githubRepoDisconnected, { githubRepoId: repoId });
+      await ctx.runMutation(internal.webhooks.githubRepoDisconnected, { githubRepoId: repoId });
     }
-    await ctx.runMutation(api.webhooks.githubMarkProcessed, {
+    await ctx.runMutation(internal.webhooks.githubMarkProcessed, {
       provider: "github",
       externalId: deliveryId,
       checkOnly: false,
@@ -81,7 +81,7 @@ export async function handleGithubWebhook(
   const activity = extractActivity(payload);
   if (!activity) {
     // Not recordable activity (e.g. a plain push) — ack and stop.
-    await ctx.runMutation(api.webhooks.githubMarkProcessed, {
+    await ctx.runMutation(internal.webhooks.githubMarkProcessed, {
       provider: "github",
       externalId: deliveryId,
       checkOnly: false,
@@ -89,7 +89,7 @@ export async function handleGithubWebhook(
     return new Response("OK", { status: 200 });
   }
 
-  const result = await ctx.runMutation(api.webhooks.githubRecordActivity, {
+  const result = await ctx.runMutation(internal.webhooks.githubRecordActivity, {
     githubRepoId,
     activity,
     deliveryId,

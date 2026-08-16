@@ -298,9 +298,23 @@ export function Shell() {
         </main>
       </div>
 
-      {/* §22.10 — bottom tab bar below 1024px */}
+      {/* §22.10 — bottom tab bar below 1024px. Settings + Sign out live in
+          the sidebar footer on desktop; on touch the sidebar is gone, so
+          they get persistent tabbar entries. */}
       <nav className="tabbar" aria-label="Primary">
         {nav(true)}
+        <NavLink
+          to="/settings"
+          end
+          className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+          aria-label="Settings"
+          title="Settings"
+        >
+          <IconSettings />
+        </NavLink>
+        <button type="button" className="nav-item" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}>
+          <IconLogOut />
+        </button>
       </nav>
 
       <CommandPalette />

@@ -114,6 +114,25 @@ export const getConnection = internalQuery({
   },
 });
 
+/**
+ * §9a audit fix — is this project_repo link owned by the authenticated user?
+ * Used by the backfill action so a caller can't inject fabricated billable
+ * activity onto another user's project.
+ */
+export const ownsProjectRepo = internalQuery({
+  args: { projectRepoId: v.id("projectRepos") },
+  handler: async (ctx, { projectRepoId }) => {
+    const userId = await getAuthUserId(ctx as any);
+    if (userId === null) return false;
+    const link = await ctx.db.get(projectRepoId);
+    if (!link) return false;
+    const project = await ctx.db.get(link.projectId);
+    if (!project) return false;
+    const contact = await ctx.db.get(project.contactId);
+    return contact?.userId === userId;
+  },
+});
+
 export const repoLinkInfo = internalQuery({
   args: { githubRepoId: v.number() },
   handler: async (ctx, { githubRepoId }) => {

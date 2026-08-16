@@ -81,7 +81,12 @@ export function InvoicesList() {
         const bv = b[sortKey];
         if (av === null || av === undefined) return 1;
         if (bv === null || bv === undefined) return -1;
-        const cmp = typeof av === "number" ? av - (bv as number) : String(av).localeCompare(String(bv));
+        // `total` is Convex int64 → bigint (not number); compare numerically so
+        // $1,000 doesn't sort before $9 (lexicographic bigint bug).
+        const cmp =
+          typeof av === "number" || typeof av === "bigint"
+            ? Number(av) - Number(bv)
+            : String(av).localeCompare(String(bv));
         return sortDir === "asc" ? cmp : -cmp;
       });
     }

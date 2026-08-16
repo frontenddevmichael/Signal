@@ -91,7 +91,10 @@ export const consumeKeyRateLimit = mutation({
   args: { keyId: v.id("apiKeys"), actionType: v.string() },
   handler: async (ctx, { keyId, actionType }) => {
     const now = Date.now();
-    const windowStart = now - 60 * 60 * 1000; // hourly window
+    // Hourly window BUCKETED to the top of the hour (§21.10 audit fix) — the
+    // old `now - 1h` exact-match lookup never hit the same row twice, so the
+    // cap silently never engaged.
+    const windowStart = Math.floor(now / (60 * 60 * 1000)) * (60 * 60 * 1000);
     const row = await ctx.db
       .query("rateLimits")
       .withIndex("by_key_action_window", (q) =>

@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { billableDefaultForLinks } from "./githubLogic";
 import { writeTimelineEvent } from "./timeline";
@@ -16,7 +16,7 @@ import type { GenericId } from "convex/values";
  * without writing (used by the action's pre-check); otherwise marks it
  * processed — called with checkOnly:false only after a decision to process.
  */
-export const githubMarkProcessed = mutation({
+export const githubMarkProcessed = internalMutation({
   args: {
     provider: v.literal("github"),
     externalId: v.string(),
@@ -44,7 +44,7 @@ export const githubMarkProcessed = mutation({
  * mark every repo of that installation disconnected. Nothing is deleted —
  * historical repo_activity and invoice line items stay intact.
  */
-export const githubInstallationRemoved = mutation({
+export const githubInstallationRemoved = internalMutation({
   args: { installationId: v.optional(v.number()) },
   handler: async (ctx, { installationId }) => {
     if (installationId === undefined) return { disconnected: 0 };
@@ -70,7 +70,7 @@ export const githubInstallationRemoved = mutation({
 });
 
 /** §20.3 partial downgrade: just the removed repo goes disconnected. */
-export const githubRepoDisconnected = mutation({
+export const githubRepoDisconnected = internalMutation({
   args: { githubRepoId: v.number() },
   handler: async (ctx, { githubRepoId }) => {
     const repo = await ctx.db
@@ -158,7 +158,7 @@ export async function recordGithubActivity(ctx: DbLike, args: ActivityArgs) {
   return { linked: written };
 }
 
-export const githubRecordActivity = mutation({
+export const githubRecordActivity = internalMutation({
   args: {
     githubRepoId: v.number(),
     activity: v.object({

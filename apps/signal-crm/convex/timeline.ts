@@ -2,6 +2,7 @@ import { query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { GenericId } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
  * §18 write-path enforcement (locked): EVERY mutation that touches messages,
@@ -50,6 +51,10 @@ export async function writeTimelineEvent(
 export const getForContact = query({
   args: { contactId: v.id("contacts") },
   handler: async (ctx, { contactId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
+    const contact = await ctx.db.get(contactId);
+    if (!contact || contact.userId !== userId) return [];
     return await ctx.db
       .query("timelineEvents")
       .withIndex("by_contact", (q) => q.eq("contactId", contactId))

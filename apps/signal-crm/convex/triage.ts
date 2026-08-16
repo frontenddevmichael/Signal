@@ -26,18 +26,44 @@ export function llmTriageConfigured(): boolean {
 }
 
 /**
- * Check-and-increment the daily cap atomically (rolling window per user).
+ * §20.14/§21.10 audit fix: bucket a rolling window into a fixed slot so the
+ * rate_limits lookup is REPRODUCIBLE. The old code computed `now - 24h` fresh
+ * per call — two calls in different milliseconds produced different windowStart
+ * values, so the exact-match query never found the row and the counter never
+ * accumulated (the cap silently never engaged). Bucketing to the top of the
+ * period means every call in the same day/hour hits the same row.
+ */
+export function windowBucket(now: number, periodMs: number): number {
+  return Math.floor(now / periodMs) * periodMs;
+}
+
+/** §20.14 — one slot per calendar DAY (24h fixed bucket). */
+export function triageWindowStart(now: number): number {
+  return windowBucket(now, 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Check-and-increment the daily cap atomically (per-user day bucket).
  * Returns true when a slot was available; false when the cap is exhausted.
+ * §20.14 audit fix: the userId is derived from the authenticated session, not
+ * taken as an argument, so no caller can burn another user's budget.
  */
 export const tryConsumeTriageCap = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.email) return { allowed: false, remaining: 0 };
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
+      .first();
+    if (!user) return { allowed: false, remaining: 0 };
     const now = Date.now();
-    const windowStart = now - 24 * 60 * 60 * 1000;
+    const windowStart = triageWindowStart(now);
     const existing = await ctx.db
       .query("rateLimits")
       .withIndex("by_key_action_window", (q) =>
-        q.eq("key", `user:${userId}`).eq("actionType", "llm_triage").eq("windowStart", windowStart)
+        q.eq("key", `user:${user._id}`).eq("actionType", "llm_triage").eq("windowStart", windowStart)
       )
       .first();
     const count = existing?.attemptCount ?? 0;
@@ -46,7 +72,7 @@ export const tryConsumeTriageCap = mutation({
       await ctx.db.patch(existing._id, { attemptCount: count + 1 });
     } else {
       await ctx.db.insert("rateLimits", {
-        key: `user:${userId}`,
+        key: `user:${user._id}`,
         actionType: "llm_triage",
         windowStart,
         attemptCount: 1,

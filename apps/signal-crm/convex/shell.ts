@@ -17,7 +17,10 @@ export const counts = query({
     const now = Date.now();
 
     // §10 general inbox — unmatched inbound messages (same filter as the page).
-    const messages = await ctx.db.query("messages").collect();
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
     const inbox = messages.filter(
       (m) => m.contactId === undefined && m.direction === "inbound"
     ).length;

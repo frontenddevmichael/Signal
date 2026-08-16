@@ -8,8 +8,8 @@
  * never passes through the browser), encrypted with GMAIL_TOKEN_ENCRYPTION_KEY
  * (§20.9), and stored on users.googleRefreshTokenEncrypted.
  */
-import { httpAction, mutation } from "./_generated/server";
-import { api } from "./_generated/api";
+import { httpAction, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { encryptToken, encryptionKeyConfigured } from "./tokenCrypto";
 import { googleOAuthConfigured, redirectUri } from "./gmailClient";
@@ -47,7 +47,7 @@ export async function handleGmailCallback(ctx: {
   if (!identity?.email) return fail("not_signed_in");
 
   // CSRF: the state must match the one we stored for THIS user.
-  const user = await ctx.runMutation(api.gmailConnect.verifyState, {
+  const user = await ctx.runMutation(internal.gmailConnect.verifyState, {
     email: identity.email,
     state,
   });
@@ -75,7 +75,7 @@ export async function handleGmailCallback(ctx: {
 
   const encrypted = await encryptToken(tokens.refresh_token);
 
-  await ctx.runMutation(api.gmailConnect.storeToken, {
+  await ctx.runMutation(internal.gmailConnect.storeToken, {
     userId: user._id,
     encrypted,
     email: identity.email,
@@ -89,7 +89,7 @@ export const gmailOauthCallback = httpAction(async (ctx, request) => {
 });
 
 /** CSRF check half of the callback: does this user hold this state? */
-export const verifyState = mutation({
+export const verifyState = internalMutation({
   args: { email: v.string(), state: v.string() },
   handler: async (ctx, { email, state }) => {
     const user = await ctx.db
@@ -102,7 +102,7 @@ export const verifyState = mutation({
 });
 
 /** Store the encrypted token (already encrypted server-side in the callback). */
-export const storeToken = mutation({
+export const storeToken = internalMutation({
   args: { userId: v.id("users"), encrypted: v.string(), email: v.string() },
   handler: async (ctx, { userId, encrypted, email }) => {
     const user = await ctx.db.get(userId);

@@ -32,8 +32,8 @@ export function activeTimezone(): string | undefined {
   return _activeTimezone;
 }
 
-function tzOptions<K extends Record<string, unknown>>(opts: K): K {
-  if (_activeTimezone) return { ...opts, timeZone: _activeTimezone } as K;
+function tzOptions(opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+  if (_activeTimezone) return { ...opts, timeZone: _activeTimezone };
   return opts;
 }
 
@@ -66,6 +66,23 @@ export function timeAgo(ts: number): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d ago`;
+  return formatDate(ts);
+}
+
+/**
+ * Relative label for a timestamp that may be in the FUTURE (a scheduled
+ * meeting, a pending deadline) — timeAgo alone renders those as "just now",
+ * which is misleading. Future reads "in 2h" / "in 6d" (same voice as dueLabel).
+ */
+export function timeUntil(ts: number): string {
+  const diff = ts - Date.now();
+  if (diff < 0) return timeAgo(ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `in ${Math.max(1, mins)}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `in ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `in ${days}d`;
   return formatDate(ts);
 }
 

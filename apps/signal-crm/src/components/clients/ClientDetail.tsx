@@ -9,6 +9,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
 import { ContactForm } from "./ContactForm";
+import { ClientCalendar } from "./ClientCalendar";
 import { MergeDialog } from "./MergeDialog";
 import { NoteComposer } from "../notes/NoteComposer";
 import { Timeline } from "../timeline/Timeline";
@@ -65,7 +66,10 @@ export function ClientDetail() {
 
   // §14 relationship health: days since last contact → beacon when the
   // relationship is going cold (no activity, or stale by 14+ days).
-  const lastEvent = timelineEvents?.[0]?.occurredAt ?? null;
+  // The timeline is ordered desc, so skip future-dated rows (scheduled
+  // meetings) — a future meeting is not "last contact".
+  const lastEvent =
+    timelineEvents?.find((e) => e.occurredAt <= Date.now())?.occurredAt ?? null;
   const daysSince = lastEvent ? Math.floor((Date.now() - lastEvent) / 86400000) : null;
   const healthStale = lastEvent === null || (daysSince !== null && daysSince >= 14);
 
@@ -244,6 +248,7 @@ export function ClientDetail() {
 
       {tab === "timeline" && (
         <section aria-label="Timeline">
+          <ClientCalendar contactId={contactId as Id<"contacts">} />
           <NoteComposer contactId={contactId} />
           <MeetingsPanel contactId={contactId as Id<"contacts">} />
           <GmailSetupBlock contactId={contactId as Id<"contacts">} />

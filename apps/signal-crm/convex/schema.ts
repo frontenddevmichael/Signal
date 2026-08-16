@@ -73,6 +73,10 @@ export default defineSchema({
     // per the schema-migrations rule; needed so §20.13 sign-out-everywhere has
     // a meaningful "this device" unit.
     deviceId: v.optional(v.string()),
+    // §20.13 audit fix: the REAL Convex Auth session this device row tracks, so
+    // revokeSession/signOutEverywhere can invalidate actual auth sessions instead
+    // of a decorative table. Optional per the migrations rule.
+    authSessionId: v.optional(v.id("authSessions")),
     revokedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
@@ -266,6 +270,11 @@ export default defineSchema({
    */
   messages: defineTable({
     contactId: v.optional(v.id("contacts")),
+    // §10 cross-tenant fix (audit 2026-08-15): owner of the message. Matched
+    // messages take their contact's userId; unmatched general-inbox rows are
+    // attributed to the user whose address/number received them, so the inbox
+    // query can scope by owner instead of returning every tenant's rows.
+    userId: v.optional(v.id("users")),
     channel: v.union(v.literal("email"), v.literal("whatsapp")),
     direction: v.union(v.literal("inbound"), v.literal("outbound")),
     fromAddress: v.string(),
@@ -274,7 +283,7 @@ export default defineSchema({
     // ADDITIVE (Phase 4, flagged): §20.14 triage verdict (rule-based or LLM),
     // used by the Phase 5 inbox to badge/sort. Optional so Phase 1-3 rows fit.
     classification: v.optional(v.union(v.literal("spam"), v.literal("important"), v.literal("ambiguous"))),
-  }).index("by_contact", ["contactId"]),
+  }).index("by_contact", ["contactId"]).index("by_user", ["userId"]),
 
   /** Proposals/contracts/generated docs (§15). provider_ref holds the Doc ID or envelope id. */
   documents: defineTable({

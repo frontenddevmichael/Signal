@@ -51,6 +51,7 @@ import type * as push from "../push.js";
 import type * as pushLogic from "../pushLogic.js";
 import type * as pushSender from "../pushSender.js";
 import type * as reconciliation from "../reconciliation.js";
+import type * as sanitizeHtml from "../sanitizeHtml.js";
 import type * as sessions from "../sessions.js";
 import type * as shell from "../shell.js";
 import type * as timeline from "../timeline.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   pushLogic: typeof pushLogic;
   pushSender: typeof pushSender;
   reconciliation: typeof reconciliation;
+  sanitizeHtml: typeof sanitizeHtml;
   sessions: typeof sessions;
   shell: typeof shell;
   timeline: typeof timeline;

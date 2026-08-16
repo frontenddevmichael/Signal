@@ -4,13 +4,29 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
  * The current freelancer's users row. Returns null when signed out; used by the
- * shell for theme preference and later phases for integration state.
+ * shell for theme/timezone preference and the user menu. NEVER returns the raw
+ * row — it carries secrets (googleRefreshTokenEncrypted, gmailOauthState CSRF
+ * state) that must stay server-side. The connect status is exposed separately
+ * via gmailClient.gmailStatus.
  */
 export const myUser = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) return null;
-    return await ctx.db.get(userId);
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    return {
+      name: user.name ?? null,
+      email: user.email ?? null,
+      timezone: user.timezone ?? null,
+      themePreference: user.themePreference ?? "system",
+      aiTriageEnabled: user.aiTriageEnabled ?? true,
+      // Integration presence booleans — enough for the UI to render state, never
+      // the secret payloads themselves.
+      gmailConnected: Boolean(user.googleRefreshTokenEncrypted),
+      githubConnected: user.githubInstallationId != null,
+      whatsappConnected: Boolean(user.whatsappBusinessNumber),
+    };
   },
 });
 
@@ -26,6 +42,25 @@ export const updateThemePreference = mutation({
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not signed in");
     await ctx.db.patch(userId, { themePreference });
+  },
+});
+
+/**
+ * §20.8 — the freelancer's stored IANA timezone, driving dashboard, calendar,
+ * and invoice date rendering (lib/format.ts activeTimezone). Defaults to UTC
+ * on first sign-in; this is the only place it changes.
+ */
+export const updateTimezone = mutation({
+  args: {
+    timezone: v.string(),
+  },
+  handler: async (ctx, { timezone }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not signed in");
+    if (!timezone.trim() || timezone.length > 64) {
+      throw new Error("timezone must be a non-empty IANA identifier");
+    }
+    await ctx.db.patch(userId, { timezone: timezone.trim() });
   },
 });
 

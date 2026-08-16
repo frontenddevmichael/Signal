@@ -26,8 +26,10 @@ test("core Phase 1 flow: contact → note → project → timeline", async ({ pa
   await page.locator("#cf-name").fill(name);
   await page.locator("#cf-company").fill(`Company ${STAMP}`);
   await page.getByRole("button", { name: "Add client" }).last().click();
-  // The form closes; navigate into the new client's detail page.
-  await page.getByRole("link", { name: name }).click();
+  // The form closes; navigate into the new client's detail page. The row's
+  // name link is `.client-name` — the quick-action link's aria-label also
+  // contains the name, so a role-based name match would be ambiguous.
+  await page.locator(".client-name", { hasText: name }).click();
   await expect(page.getByRole("heading", { name: name })).toBeVisible();
 
   // Add a note → must surface on the timeline (§18 single write path).

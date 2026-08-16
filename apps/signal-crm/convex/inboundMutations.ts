@@ -6,15 +6,15 @@
  * The idempotency mutation follows the same (provider, external_id) discipline
  * as GitHub/Stripe — checked only AFTER signature verification.
  */
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { GenericId } from "convex/values";
 import { writeTimelineEvent } from "./timeline";
-import { classifyMessage, LLM_TRIAGE_DAILY_CAP, llmTriageConfigured } from "./triage";
+import { classifyMessage, LLM_TRIAGE_DAILY_CAP, llmTriageConfigured, triageWindowStart } from "./triage";
 
-export const markProcessed = mutation({
+export const markProcessed = internalMutation({
   args: {
     provider: v.union(v.literal("mailgun"), v.literal("postmark")),
     externalId: v.string(),
@@ -45,7 +45,7 @@ export const markProcessed = mutation({
  * UI can show "pending confirmation — code: XXXXXX" (§23.2) until the
  * freelancer pastes it into Gmail.
  */
-export const markForwardingConfirmed = mutation({
+export const markForwardingConfirmed = internalMutation({
   args: { contactId: v.string(), code: v.optional(v.string()) },
   handler: async (ctx, { contactId, code }) => {
     let contact: any;
@@ -71,7 +71,7 @@ export const markForwardingConfirmed = mutation({
 });
 
 /** §17 spoofing guard — rejected messages are logged (audit trail), never written. */
-export const logRejected = mutation({
+export const logRejected = internalMutation({
   args: { reason: v.string(), from: v.string(), subject: v.string() },
   handler: async (ctx, { reason, from, subject }) => {
     // No userId — the rejection happens before routing (that's the point).
@@ -119,7 +119,7 @@ export async function recordInboundLogic(
     let classification: "spam" | "important" | "ambiguous" | undefined;
     let canUseLlm = false;
     if (user) {
-      const windowStart = now - 24 * 60 * 60 * 1000;
+      const windowStart = triageWindowStart(now);
       const capRow = await ctx.db
         .query("rateLimits")
         .withIndex("by_key_action_window", (q) =>
@@ -141,10 +141,11 @@ export async function recordInboundLogic(
     classification = verdict;
     if (usedLlm && user) {
       // The LLM actually ran — consume one slot of today's cap (§20.14).
+      const windowStart = triageWindowStart(now);
       const capRow = await ctx.db
         .query("rateLimits")
         .withIndex("by_key_action_window", (q) =>
-          q.eq("key", `user:${user._id}`).eq("actionType", "llm_triage").eq("windowStart", now - 24 * 60 * 60 * 1000)
+          q.eq("key", `user:${user._id}`).eq("actionType", "llm_triage").eq("windowStart", windowStart)
         )
         .first();
       if (capRow) await ctx.db.patch(capRow._id, { attemptCount: capRow.attemptCount + 1 });
@@ -152,13 +153,14 @@ export async function recordInboundLogic(
         await ctx.db.insert("rateLimits", {
           key: `user:${user._id}`,
           actionType: "llm_triage",
-          windowStart: now - 24 * 60 * 60 * 1000,
+          windowStart,
           attemptCount: 1,
         });
     }
 
     const messageId = await ctx.db.insert("messages", {
       contactId: contact._id,
+      userId: contact.userId as GenericId<"users">,
       channel: "email",
       direction: "inbound",
       fromAddress: args.from,
@@ -195,7 +197,7 @@ export async function recordInboundLogic(
     return { written: true, messageId, classification };
 }
 
-export const recordInbound = mutation({
+export const recordInbound = internalMutation({
   args: {
     contactId: v.string(),
     from: v.string(),

@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { timeAgo } from "../../lib/format";
+import { timeUntil } from "../../lib/format";
 import { EmptyState } from "../EmptyState";
 
 const TYPE_META: Record<string, { label: string; glyph: string }> = {
@@ -66,7 +66,7 @@ export function Timeline({ contactId }: { contactId: string }) {
               <div className="timeline-head">
                 <span className="timeline-label">{meta.label}</span>
                 <time className="num" dateTime={new Date(e.occurredAt).toISOString()}>
-                  {timeAgo(e.occurredAt)}
+                  {timeUntil(e.occurredAt)}
                 </time>
               </div>
               {e.type === "note" && <NoteBody sourceId={e.sourceId} />}

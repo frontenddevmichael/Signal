@@ -42,6 +42,9 @@ export const pendingNudges = query({
       const events = await ctx.db
         .query("timelineEvents")
         .withIndex("by_contact", (q) => q.eq("contactId", c._id))
+        // Future-dated events (scheduled meetings) are not activity — they
+        // must not suppress a follow-up nudge.
+        .filter((q) => q.lte(q.field("occurredAt"), Date.now()))
         .order("desc")
         .take(1);
       const last = events[0]?.occurredAt ?? null;

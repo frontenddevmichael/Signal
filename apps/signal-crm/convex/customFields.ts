@@ -118,6 +118,17 @@ export const setValue = mutation({
     if (!def || def.userId !== userId || def.entityType !== args.entityType) {
       throw new Error("Not found");
     }
+    // Ownership of the TARGET entity too — the definition being ours is not
+    // enough. Projects have no userId; resolve via their owning contact.
+    if (args.entityType === "contact") {
+      const contact = await ctx.db.get(args.entityId as GenericId<"contacts">);
+      if (!contact || contact.userId !== userId) throw new Error("Not found");
+    } else {
+      const project = await ctx.db.get(args.entityId as GenericId<"projects">);
+      if (!project) throw new Error("Not found");
+      const contact = await ctx.db.get(project.contactId);
+      if (!contact || contact.userId !== userId) throw new Error("Not found");
+    }
     const existing = await ctx.db
       .query("customFieldValues")
       .withIndex("by_entity", (q) => q.eq("entityId", args.entityId))

@@ -3,13 +3,35 @@
  * freelancer's own identity), then records the OUTBOUND message + timeline
  * event in one transaction (same write path as inbound, direction flipped).
  */
-import { action, internalMutation } from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { GenericId } from "convex/values";
 import { encodeRawMessage, sendGmailMessage } from "./gmailClient";
 import { composeRawMessage } from "./gmailSend";
 import { writeTimelineEvent } from "./timeline";
+
+/** §17 audit fix — the owner of a contact (identity of the freelancer). */
+export const ownerForContact = internalQuery({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, { contactId }) => {
+    const contact = await ctx.db.get(contactId);
+    if (!contact) return null;
+    return ctx.db.get(contact.userId);
+  },
+});
+
+/** §17 audit fix — the contact's registered email addresses. */
+export const contactEmails = internalQuery({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, { contactId }) => {
+    const rows = await ctx.db
+      .query("contactEmails")
+      .withIndex("by_contact", (q) => q.eq("contactId", contactId))
+      .collect();
+    return rows.map((r) => ({ email: r.email }));
+  },
+});
 
 export const sendReply = action({
   args: {
@@ -21,6 +43,20 @@ export const sendReply = action({
     references: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ sent: boolean; messageId: string; recorded: { messageId: string } }> => {
+    // §17 audit fix: only the contact's owner may reply, and only to the
+    // contact's OWN addresses — a signed-in caller can no longer forge a
+    // "you replied" timeline entry onto a victim's contact.
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.email) throw new Error("Not signed in");
+    const user = await ctx.runQuery(internal.gmailReply.ownerForContact, { contactId: args.contactId });
+    if (!user || user.email !== identity.email) throw new Error("Not found");
+
+    const emails = await ctx.runQuery(internal.gmailReply.contactEmails, { contactId: args.contactId });
+    const allowed = emails.map((e) => e.email.toLowerCase());
+    if (allowed.length === 0 || !allowed.includes(args.to.trim().toLowerCase())) {
+      throw new Error("Not a recognized address for this client");
+    }
+
     const accessToken = await ctx.runAction(api.gmailClient.gmailAccessToken, {});
     const raw = composeRawMessage({
       to: args.to,
@@ -50,8 +86,10 @@ export const recordOutbound = internalMutation({
     occurredAt: v.number(),
   },
   handler: async (ctx, args): Promise<{ messageId: string }> => {
+    const contact = await ctx.db.get(args.contactId);
     const messageId = await ctx.db.insert("messages", {
       contactId: args.contactId as GenericId<"contacts">,
+      userId: contact?.userId,
       channel: "email",
       direction: "outbound",
       fromAddress: args.to,

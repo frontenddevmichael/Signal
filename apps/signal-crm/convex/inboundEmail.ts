@@ -16,7 +16,7 @@
  * lives in gmailLogic.ts and is Vitest-covered; this module does the plumbing.
  */
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import {
   evaluateSpoofingRisk,
   extractForwardingConfirmation,
@@ -106,6 +106,12 @@ async function parseMailgun(request: Request): Promise<ParsedInbound | null> {
   const expected = await hmacHex(key, timestamp + token);
   if (!timingSafeEqualHex(expected, signature)) return null;
 
+  // Mailgun's scheme signs ONLY timestamp+token — not the body — so the token
+  // must be fresh to defeat replay of a captured webhook. Reject anything older
+  // than 15 minutes (Mailgun's own recommendation).
+  const sentAt = parseInt(timestamp, 10);
+  if (!Number.isFinite(sentAt) || Math.abs(Date.now() / 1000 - sentAt) > 900) return null;
+
   const headers = JSON.parse((form.get("message-headers") as string) ?? "[]");
   const to = (form.get("recipient") as string) ?? "";
   const from = (form.get("From") as string) ?? "";
@@ -155,7 +161,7 @@ export async function handleInboundEmail(ctx: MutationRunner, request: Request):
   if (!parsed) return new Response("Invalid signature", { status: 401 });
 
   // Idempotency — same (provider, external_id) discipline as every webhook.
-  const dedupe = await ctx.runMutation(api.inboundMutations.markProcessed, {
+  const dedupe = await ctx.runMutation(internal.inboundMutations.markProcessed, {
     provider: parsed.provider,
     externalId: parsed.externalId,
     checkOnly: true,
@@ -173,12 +179,12 @@ export async function handleInboundEmail(ctx: MutationRunner, request: Request):
   });
   if (confirmation.confirmed) {
     if (matchTo) {
-      await ctx.runMutation(api.inboundMutations.markForwardingConfirmed, {
+      await ctx.runMutation(internal.inboundMutations.markForwardingConfirmed, {
         contactId: matchTo[1],
         code: confirmation.code,
       });
     }
-    await ctx.runMutation(api.inboundMutations.markProcessed, {
+    await ctx.runMutation(internal.inboundMutations.markProcessed, {
       provider: parsed.provider,
       externalId: parsed.externalId,
       checkOnly: false,
@@ -193,7 +199,7 @@ export async function handleInboundEmail(ctx: MutationRunner, request: Request):
     dmarc: parsed.dmarc,
   });
   if (!guard.spoofingSafe) {
-    await ctx.runMutation(api.inboundMutations.logRejected, {
+    await ctx.runMutation(internal.inboundMutations.logRejected, {
       reason: guard.reason,
       from: parsed.from,
       subject: parsed.subject,
@@ -205,7 +211,7 @@ export async function handleInboundEmail(ctx: MutationRunner, request: Request):
   const match = matchTo;
   if (!match) {
     // Forwarded from a different address (e.g. first setup test) — ack, don't drop silently.
-    await ctx.runMutation(api.inboundMutations.markProcessed, {
+    await ctx.runMutation(internal.inboundMutations.markProcessed, {
       provider: parsed.provider,
       externalId: parsed.externalId,
       checkOnly: false,
@@ -214,7 +220,7 @@ export async function handleInboundEmail(ctx: MutationRunner, request: Request):
   }
   const contactId = match[1];
 
-  const write = await ctx.runMutation(api.inboundMutations.recordInbound, {
+  const write = await ctx.runMutation(internal.inboundMutations.recordInbound, {
     contactId,
     from: parsed.from,
     subject: parsed.subject,

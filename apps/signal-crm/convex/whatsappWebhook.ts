@@ -9,7 +9,7 @@
  * contactId: null, per §10.
  */
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { verifyMetaSignature, extractWhatsAppMessage } from "./whatsappLogic";
 
 type MutationRunner = {
@@ -45,13 +45,13 @@ export async function handleWhatsAppWebhook(ctx: MutationRunner, request: Reques
     return new Response("OK", { status: 200 });
   }
 
-  const dedupe = await ctx.runMutation(api.whatsappMutations.markProcessed, {
+  const dedupe = await ctx.runMutation(internal.whatsappMutations.markProcessed, {
     externalId: message.id,
     checkOnly: true,
   });
   if (dedupe.processed) return new Response("OK", { status: 200 });
 
-  const result = await ctx.runMutation(api.whatsappMutations.recordMessage, {
+  const result = await ctx.runMutation(internal.whatsappMutations.recordMessage, {
     from: message.from,
     body: message.text,
     occurredAt: Number(message.timestamp) * 1000,

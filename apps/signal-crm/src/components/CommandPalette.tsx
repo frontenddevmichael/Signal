@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { initials } from "../lib/format";
+import { bestFieldScore } from "../lib/fuzzy";
 import { IconCommand, IconInvoices, IconPlus } from "./Icons";
 
 /**
@@ -14,6 +15,13 @@ import { IconCommand, IconInvoices, IconPlus } from "./Icons";
  * Create actions communicate through a tiny window-event bus so the page that
  * owns the modal (ClientsList / InvoicesList) can open it — the palette stays
  * decoupled from page state.
+ *
+ * A11y/HCI (refactor): proper combobox pattern — the input is a combobox with
+ * aria-activedescendant pointing at the active option (screen readers follow
+ * arrow navigation), group labels are role="group" wrappers so the listbox
+ * only contains options/groups, the empty state lives OUTSIDE the listbox as
+ * role="status", the dialog is aria-modal with a real focus trap, focus is
+ * restored to the trigger on close, and the active row scrolls into view.
  */
 export const NEW_CONTACT_EVENT = "signal:new-contact";
 export const NEW_INVOICE_EVENT = "signal:new-invoice";
@@ -24,6 +32,16 @@ interface Item {
   sub: string;
   group: string;
   run: () => void;
+  /** Internal — fuzzy ranking score; actions omit it (they sit below rows). */
+  _score?: number;
+}
+
+interface Group {
+  name: string;
+  items: Item[];
+  /** Flat index of this group's first item — precomputed so the active
+   *  option id and keyboard math never depend on render-order mutation. */
+  startIndex: number;
 }
 
 export function CommandPalette() {
@@ -33,6 +51,9 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Where focus was when the palette opened — restored on close.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const contacts = useQuery(api.contacts.list, {});
   const projects = useQuery(api.projects.listAll);
@@ -65,6 +86,7 @@ export function CommandPalette() {
       openPathRef.current = location.pathname;
       setQuery("");
       setActive(0);
+      returnFocusRef.current = document.activeElement as HTMLElement | null;
       window.setTimeout(() => inputRef.current?.focus(), 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,44 +98,111 @@ export function CommandPalette() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, open]);
 
+  // Restore focus to the trigger when the palette closes (modal focus rule).
+  useEffect(() => {
+    if (!open) {
+      const target = returnFocusRef.current;
+      if (target && typeof target.focus === "function" && document.contains(target)) {
+        target.focus();
+      }
+      returnFocusRef.current = null;
+    }
+  }, [open]);
+
+  // Keep the active option visible while arrowing through a long list.
+  useEffect(() => {
+    if (!open) return;
+    const el = document.getElementById(`palette-opt-${active}`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [active, open]);
+
+  // Modal focus trap: the palette is the only focusable surface while open —
+  // Tab/Shift+Tab cycle within it instead of leaking into the page behind.
+  const trapFocus = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const dialog = e.currentTarget as HTMLElement;
+      const focusables = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button, input, [href], [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    []
+  );
+
   const items: Item[] = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const match = (...parts: (string | undefined)[]) =>
-      parts.some((p) => p && p.toLowerCase().includes(q));
+    const q = query.trim();
+
+    // §2.4 fuzzy ranking: every candidate is scored (not substring-filtered)
+    // so typos and partial matches surface the right row, and the list is
+    // ordered best-first instead of data-order. A null score = no match.
+    const score = (...fields: (string | undefined | null)[]) =>
+      q ? bestFieldScore(q, fields) : 0;
 
     const rows: Item[] = [];
     for (const c of contacts ?? []) {
-      if (q && !match(c.name, c.company)) continue;
+      const s = score(c.name, c.company);
+      if (s === null) continue;
       rows.push({
         id: `c-${c._id}`,
         label: c.name,
         sub: c.company ?? c.status,
         group: "Clients",
         run: () => navigate(`/clients/${c._id}`),
+        _score: s,
       });
     }
     for (const p of projects ?? []) {
-      if (q && !match(p.name, p.contactName)) continue;
+      const s = score(p.name, p.contactName);
+      if (s === null) continue;
       rows.push({
         id: `p-${p._id}`,
         label: p.name,
         sub: p.contactName,
         group: "Projects",
         run: () => navigate(`/clients/${p.contactId}`),
+        _score: s,
       });
     }
     for (const inv of invoices ?? []) {
-      if (q && !match(inv.invoiceNumber, inv.contactName)) continue;
+      const s = score(inv.invoiceNumber, inv.contactName, inv.status);
+      if (s === null) continue;
       rows.push({
         id: `i-${inv._id}`,
         label: inv.invoiceNumber,
         sub: `${inv.contactName} · ${inv.status}`,
         group: "Invoices",
         run: () => navigate(`/invoices/${inv._id}`),
+        _score: s,
       });
     }
 
     const actions: Item[] = [
+      {
+        id: "a-home",
+        label: "Clients",
+        sub: "All clients",
+        group: "Actions",
+        run: () => navigate("/"),
+      },
+      {
+        id: "a-invoices",
+        label: "Invoices",
+        sub: "All invoices",
+        group: "Actions",
+        run: () => navigate("/invoices"),
+      },
       {
         id: "a-new-contact",
         label: "New contact",
@@ -137,6 +226,13 @@ export function CommandPalette() {
         },
       },
       {
+        id: "a-calendar",
+        label: "Calendar",
+        sub: "Deadlines, dues, meetings",
+        group: "Actions",
+        run: () => navigate("/calendar"),
+      },
+      {
         id: "a-inbox",
         label: "Inbox",
         sub: "Unmatched messages",
@@ -158,18 +254,47 @@ export function CommandPalette() {
         run: () => navigate("/settings"),
       },
     ];
+    // With a query: rank rows best-first (stable sort keeps data order for
+    // ties), then append the matching actions. With no query: actions first,
+    // rows in data order — the pre-fuzzy behavior.
     if (!q) return [...actions, ...rows];
-    return [...rows, ...actions.filter((a) => match(a.label, a.sub))];
+    const ranked = [...rows].sort((a, b) => (b as Item & { _score: number })._score - (a as Item & { _score: number })._score);
+    const matchingActions = actions.filter((a) => bestFieldScore(q, [a.label, a.sub]) !== null);
+    return [...ranked, ...matchingActions];
   }, [contacts, projects, invoices, query, navigate]);
+
+  // Group with precomputed flat indices — no render-time mutation.
+  const groups: Group[] = useMemo(() => {
+    const out: Group[] = [];
+    let flat = 0;
+    for (const it of items) {
+      const g = out.find((x) => x.name === it.group);
+      if (g) {
+        g.items.push(it);
+      } else {
+        out.push({ name: it.group, items: [it], startIndex: flat });
+      }
+      flat += 1;
+    }
+    return out;
+  }, [items]);
+
+  const totalItems = items.length;
 
   // Keyboard navigation across the flattened list.
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((a) => Math.min(a + 1, items.length - 1));
+      setActive((a) => (totalItems === 0 ? 0 : Math.min(a + 1, totalItems - 1)));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((a) => Math.max(a - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActive(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActive(totalItems - 1);
     } else if (e.key === "Enter") {
       e.preventDefault();
       items[active]?.run();
@@ -178,27 +303,18 @@ export function CommandPalette() {
 
   if (!open) return null;
 
-  // Group runs so sections can render headers.
-  const groups: { name: string; items: Item[] }[] = [];
-  for (const it of items) {
-    const g = groups.find((x) => x.name === it.group);
-    if (g) g.items.push(it);
-    else groups.push({ name: it.group, items: [it] });
-  }
-  let flatIndex = -1;
-
   return (
-    <div
-      className="palette-overlay"
-      onClick={() => setOpen(false)}
-      role="presentation"
-    >
+    <div className="palette-overlay" onClick={() => setOpen(false)}>
       <div
         className="command-palette"
         role="dialog"
+        aria-modal="true"
         aria-label="Command palette"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={onKeyDown}
+        onKeyDown={(e) => {
+          onKeyDown(e);
+          trapFocus(e);
+        }}
       >
         <div className="palette-panel">
           <div className="palette-input-row">
@@ -208,6 +324,11 @@ export function CommandPalette() {
               className="palette-input"
               placeholder="Jump to a client, project, invoice, or action…"
               aria-label="Search"
+              role="combobox"
+              aria-expanded="true"
+              aria-controls="palette-listbox"
+              aria-activedescendant={totalItems > 0 ? `palette-opt-${active}` : undefined}
+              aria-autocomplete="list"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -216,21 +337,24 @@ export function CommandPalette() {
             />
             <kbd className="kbd">esc</kbd>
           </div>
-          <div className="palette-list" role="listbox" aria-label="Results">
-            {items.length === 0 && (
-              <p className="palette-empty">No matches for “{query}”.</p>
-            )}
+          <div
+            ref={listRef}
+            className="palette-list"
+            role="listbox"
+            id="palette-listbox"
+            aria-label="Results"
+          >
             {groups.map((g) => (
-              <div key={g.name}>
+              <div key={g.name} role="group" aria-label={g.name}>
                 <div className="palette-group-label">{g.name}</div>
-                {g.items.map((it) => {
-                  flatIndex += 1;
-                  const idx = flatIndex;
+                {g.items.map((it, i) => {
+                  const idx = g.startIndex + i;
                   return (
                     <button
                       key={it.id}
                       type="button"
                       role="option"
+                      id={`palette-opt-${idx}`}
                       aria-selected={idx === active}
                       className={`palette-row${idx === active ? " active" : ""}`}
                       onMouseEnter={() => setActive(idx)}
@@ -250,6 +374,11 @@ export function CommandPalette() {
               </div>
             ))}
           </div>
+          {totalItems === 0 && (
+            <p className="palette-empty" role="status">
+              No matches for “{query}”.
+            </p>
+          )}
           <div className="palette-footer">
             <span><kbd className="kbd">↑↓</kbd> navigate</span>
             <span><kbd className="kbd">↵</kbd> open</span>

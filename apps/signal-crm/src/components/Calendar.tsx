@@ -13,6 +13,16 @@ const KIND_ICON: Record<CalendarEvent["kind"], React.ComponentType<React.SVGProp
   meeting: IconCalendar,
 };
 
+/* §11 mobile legend — below 640px the chip titles are hidden, so the kind
+   glyphs and status dots carry the whole register. Explicit list keeps the
+   label capitalization right ("Follow-up", not "Followup"). */
+const LEGEND_KINDS: { kind: CalendarEvent["kind"]; label: string }[] = [
+  { kind: "deadline", label: "Deadline" },
+  { kind: "followup", label: "Follow-up" },
+  { kind: "invoice", label: "Invoice" },
+  { kind: "meeting", label: "Meeting" },
+];
+
 /**
  * §22.7 Calendar — one month of actionable dates on a Monday-first 6-week grid:
  * project deadlines, pending follow-up due dates, and still-owed invoice due
@@ -147,6 +157,29 @@ export function Calendar() {
                 </div>
               );
             })}
+          </div>
+
+          {/* §11 mobile legend — rendered only below 640px where titles are
+              hidden; quiet, monochrome, one line of vocabulary. */}
+          <div className="cal-legend" aria-label="Legend">
+            {LEGEND_KINDS.map(({ kind, label }) => {
+              const Icon = KIND_ICON[kind];
+              return (
+                <span key={kind} className="cal-legend-item">
+                  <Icon aria-hidden="true" style={{ width: 11, height: 11 }} />
+                  <span>{label}</span>
+                </span>
+              );
+            })}
+            <span className="cal-legend-divider" aria-hidden="true" />
+            <span className="cal-legend-item">
+              <span className="cal-dot legend-overdue" aria-hidden="true" />
+              <span>Overdue</span>
+            </span>
+            <span className="cal-legend-item">
+              <span className="cal-dot legend-partial" aria-hidden="true" />
+              <span>Partial</span>
+            </span>
           </div>
         </>
       )}

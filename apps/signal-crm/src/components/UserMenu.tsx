@@ -30,21 +30,33 @@ export function UserMenu({
   const { push } = useToasts();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<number | null>(null);
+  // Whether the popover was opened by keyboard/click (not hover) — only then
+  // does close restore focus to the trigger. A hover-open/close never had
+  // focus on the trigger, so refocusing would yank the user's cursor away.
+  const openedByFocus = useRef(false);
 
   const name = myUser?.name ?? "Account";
   const email = myUser?.email ?? null;
   const timezone = myUser?.timezone ?? "UTC";
 
   // Outside click + Esc close; mousedown so a click that opens doesn't
-  // immediately close (the trigger is inside ref).
+  // immediately close (the trigger is inside ref). Restores focus to the
+  // trigger when the popover was opened by keyboard/click and then closed.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        if (openedByFocus.current) triggerRef.current?.focus();
+      }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        if (openedByFocus.current) triggerRef.current?.focus();
+      }
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -66,6 +78,7 @@ export function UserMenu({
   };
   const toggle = () => {
     cancelClose();
+    openedByFocus.current = true;
     setOpen((o) => !o);
   };
 
@@ -82,6 +95,7 @@ export function UserMenu({
       onMouseLeave={scheduleClose}
     >
       <button
+        ref={triggerRef}
         type="button"
         className="user-trigger"
         aria-label={`Account: ${name}. Open profile.`}

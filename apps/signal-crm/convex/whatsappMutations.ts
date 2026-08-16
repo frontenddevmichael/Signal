@@ -5,19 +5,27 @@
  * triage gating exactly like email. Signature verification happens in the
  * webhook handler BEFORE anything here runs.
  */
-import { mutation, query } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { GenericId } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { writeTimelineEvent } from "./timeline";
 import { phonesMatch } from "./whatsappLogic";
-import { classifyMessage, LLM_TRIAGE_DAILY_CAP, llmTriageConfigured } from "./triage";
+import { classifyMessage, LLM_TRIAGE_DAILY_CAP, llmTriageConfigured, triageWindowStart } from "./triage";
 
-/** §10 general inbox — unmatched inbound messages (no contact linked yet). */
+/**
+ * §10 general inbox — unmatched inbound messages (no contact linked yet).
+ * Scoped to the caller's own messages (§10 audit fix); unauthenticated callers
+ * get an empty inbox.
+ */
 export const inbox = query({
   args: {},
   handler: async (ctx) => {
-    const rows = await ctx.db.query("messages").collect();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
+    const rows = await ctx.db.query("messages").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
     return rows
       .filter((r) => r.contactId === undefined && r.direction === "inbound")
       .sort((a, b) => b.occurredAt - a.occurredAt)
@@ -53,7 +61,7 @@ export const status = query({
   },
 });
 
-export const markProcessed = mutation({
+export const markProcessed = internalMutation({
   args: { externalId: v.string(), checkOnly: v.boolean() },
   handler: async (ctx, { externalId, checkOnly }) => {
     const existing = await ctx.db
@@ -89,9 +97,20 @@ export async function recordWhatsAppMessageLogic(
   const contact = hit ? await ctx.db.get(hit.contactId) : null;
   const user = contact ? await ctx.db.get(contact.userId) : null;
 
+  // §10 audit fix: attribute every message to its owner. Matched messages take
+  // their contact's user; unmatched ones fall to the single user when the
+  // deployment has exactly one (§7 — one freelancer per install), so the
+  // general inbox can be scoped per-user instead of leaking all tenants' rows.
+  let ownerUserId: GenericId<"users"> | undefined;
+  if (contact) ownerUserId = contact.userId;
+  else {
+    const users = await ctx.db.query("users").collect();
+    if (users.length === 1) ownerUserId = users[0]._id;
+  }
+
   const now = Date.now();
   // §20.14 triage — rule-based first, LLM gated (same as inbound email).
-  const windowStart = now - 24 * 60 * 60 * 1000;
+  const windowStart = triageWindowStart(now);
   const capRow = user
     ? await ctx.db
         .query("rateLimits")
@@ -131,6 +150,7 @@ export async function recordWhatsAppMessageLogic(
 
   const messageId = await ctx.db.insert("messages", {
     contactId: contact?._id, // null → general inbox (§10)
+    userId: ownerUserId,
     channel: "whatsapp",
     direction: "inbound",
     fromAddress: args.from,
@@ -168,7 +188,7 @@ export async function recordWhatsAppMessageLogic(
   };
 }
 
-export const recordMessage = mutation({
+export const recordMessage = internalMutation({
   args: {
     from: v.string(),
     body: v.string(),

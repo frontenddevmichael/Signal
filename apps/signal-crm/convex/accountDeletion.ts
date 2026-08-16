@@ -78,10 +78,25 @@ export const deleteAccount = mutation({
         if (r.contactId && myContactIds.has(r.contactId)) await ctx.db.delete(r._id);
       }
     }
+    // Unmatched inbox rows (WhatsApp/email that didn't resolve to a contact)
+    // scope by userId with contactId null — delete those too.
+    const unmatchedMessages = await ctx.db.query("messages").collect();
+    for (const m of unmatchedMessages as any[]) {
+      if (!m.contactId && m.userId === userId) await ctx.db.delete(m._id);
+    }
 
     const myProjectIds = new Set(userProjects);
+    const projectRepos = (await ctx.db.query("projectRepos").collect()) as any[];
+    const myProjectRepoIds = new Set(
+      projectRepos.filter((r) => r.projectId && myProjectIds.has(r.projectId)).map((r) => r._id),
+    );
+    // backfill_jobs hang off project_repos — delete this user's queued jobs
+    // BEFORE the projectRepo rows they reference are gone.
+    const jobs = await ctx.db.query("backfillJobs").collect();
+    for (const j of jobs.filter((j) => myProjectRepoIds.has(j.projectRepoId))) await ctx.db.delete(j._id);
+
     for (const table of ["projects", "projectRepos", "repoActivity"] as const) {
-      const rows = (await ctx.db.query(table).collect()) as any[];
+      const rows = table === "projectRepos" ? projectRepos : ((await ctx.db.query(table).collect()) as any[]);
       for (const r of rows) {
         if (r.projectId && myProjectIds.has(r.projectId)) await ctx.db.delete(r._id);
       }
@@ -89,6 +104,19 @@ export const deleteAccount = mutation({
     // repos scope by userId directly.
     const myRepos = await ctx.db.query("repos").collect();
     for (const r of myRepos.filter((r) => r.userId === userId)) await ctx.db.delete(r._id);
+
+    // gmail_filter_setup rows key by contact EMAIL, not contactId — delete the
+    // rows belonging to this user's contacts.
+    const filterRows = await ctx.db.query("gmailFilterSetup").collect();
+    const myEmails = new Set<string>();
+    for (const c of myContacts) {
+      const emailRows = await ctx.db
+        .query("contactEmails")
+        .withIndex("by_contact", (q) => q.eq("contactId", c._id))
+        .collect();
+      for (const e of emailRows) myEmails.add(e.email);
+    }
+    for (const f of filterRows.filter((f) => myEmails.has(f.contactEmail))) await ctx.db.delete(f._id);
 
     for (const i of (invoices as any[]).filter((i: any) => userProjects.has(i.projectId))) {
       const items = (await ctx.db.query("invoiceLineItems").collect()) as any[];
@@ -101,6 +129,11 @@ export const deleteAccount = mutation({
 
     const sessions = await ctx.db.query("sessions").collect();
     for (const s of sessions.filter((s) => s.userId === userId)) await ctx.db.delete(s._id);
+
+    // §12 — VAPID push subscriptions are per-user; clear them so no device keeps
+    // a subscription pointing at a deleted account.
+    const subs = await ctx.db.query("pushSubscriptions").collect();
+    for (const s of subs.filter((s) => s.userId === userId)) await ctx.db.delete(s._id);
 
     // §23.3 — undo snapshots are user-scoped scratch data; gone with the account.
     const undoRows = await ctx.db.query("contactUndo").collect();

@@ -33,6 +33,21 @@ async function ownedProject(
   return { project, contact };
 }
 
+/** Line items carry real money — description required, amount > 0, subtotal sane. */
+function validateLineItems(
+  lineItems: { description: string; amount: bigint }[] | undefined,
+  subtotal: bigint,
+  taxAmount: bigint | undefined,
+) {
+  for (const item of lineItems ?? []) {
+    if (!item.description.trim()) throw new Error("Every line item needs a description");
+    if (item.amount <= 0n) throw new Error("Line item amounts must be positive");
+  }
+  if (subtotal < 0n) throw new Error("Subtotal can't be negative");
+  if ((taxAmount ?? 0n) < 0n) throw new Error("Tax can't be negative");
+  if (computeTotal(subtotal, taxAmount) <= 0n) throw new Error("Total must be positive");
+}
+
 export const create = mutation({
   args: {
     projectId: v.id("projects"),
@@ -74,6 +89,7 @@ export const create = mutation({
     }
 
     const taxAmount = args.taxAmount ?? 0n;
+    validateLineItems(args.lineItems, args.subtotal, args.taxAmount);
     const total = computeTotal(args.subtotal, taxAmount);
     const invoiceId = await ctx.db.insert("invoices", {
       projectId: args.projectId,
@@ -152,6 +168,7 @@ export const update = mutation({
 
     const subtotal = args.subtotal ?? inv.subtotal;
     const taxAmount = args.taxAmount ?? inv.taxAmount ?? 0n;
+    validateLineItems(args.lineItems, subtotal, args.taxAmount ?? inv.taxAmount ?? 0n);
     const total = computeTotal(subtotal, taxAmount);
 
     await ctx.db.patch(args.invoiceId, {
@@ -474,6 +491,11 @@ interface PaymentArgs {
  */
 export async function applyPaymentCore(ctx: { db: any }, args: PaymentArgs) {
   const { provider, externalId, invoiceId, amount, via } = args;
+  // Money bounds — amount_paid is int64 minor units and must never go
+  // backwards or past the total. A gateway might legitimately report an
+  // overpayment; clamp to the remaining balance rather than corrupt state
+  // (the surplus is refunded at the gateway, not recorded here).
+  if (amount <= 0n) return { applied: false, reason: "non-positive-amount" };
   const existing = await ctx.db
     .query("processedWebhookEvents")
     .withIndex("by_provider_external", (q: any) => q.eq("provider", provider).eq("externalId", externalId))
@@ -484,9 +506,12 @@ export async function applyPaymentCore(ctx: { db: any }, args: PaymentArgs) {
   if (!invoice) return { applied: false, reason: "invoice-not-found" };
 
   const now = Date.now();
-  const becamePaid = invoice.amountPaid + amount >= invoice.total;
+  const remaining = invoice.total - invoice.amountPaid;
+  const applied = remaining > 0n ? (amount > remaining ? remaining : amount) : 0n;
+  if (applied <= 0n) return { applied: false, reason: "already-settled" };
+  const becamePaid = invoice.amountPaid + applied >= invoice.total;
   await ctx.db.patch(invoiceId, {
-    amountPaid: invoice.amountPaid + amount,
+    amountPaid: invoice.amountPaid + applied,
     paidAt: becamePaid ? now : invoice.paidAt,
   });
   await ctx.db.insert("processedWebhookEvents", {
@@ -525,9 +550,9 @@ export async function applyPaymentCore(ctx: { db: any }, args: PaymentArgs) {
     action: via === "webhook" ? "invoice.payment.webhook" : "invoice.payment.reconciliation",
     entityType: "invoice",
     entityId: invoiceId,
-    metadata: { provider, externalId, amount: Number(amount), number: invoice.invoiceNumber },
+    metadata: { provider, externalId, amount: Number(applied), number: invoice.invoiceNumber },
   });
-  return { applied: true, amount: Number(amount) };
+  return { applied: true, amount: Number(applied) };
 }
 
 export const applyPayment = internalMutation({

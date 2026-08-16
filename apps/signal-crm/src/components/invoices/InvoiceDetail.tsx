@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { formatMoney, timeAgo } from "../../lib/format";
+import { formatMoney, timeUntil } from "../../lib/format";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
@@ -108,7 +108,7 @@ export function InvoiceDetail() {
           </div>
           <div className="meta-block">
             <span className="meta-label">Due</span>
-            <div className="meta-value num">{invoice.dueAt ? timeAgo(invoice.dueAt) : "—"}</div>
+            <div className="meta-value num">{invoice.dueAt ? timeUntil(invoice.dueAt) : "—"}</div>
           </div>
         </div>
       </div>

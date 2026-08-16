@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -31,14 +31,24 @@ export function ProjectForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // `initial` is a fresh object on most parent renders (built inline from the
+  // contact/project query) — keying on it would wipe in-progress edits on any
+  // re-render. Snapshot only on the closed → open transition.
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
+  const wasOpen = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
-    setName(initial?.name ?? "");
-    setStatus(initial?.status ?? "active");
-    setDeadline(initial?.deadline ? new Date(initial.deadline).toISOString().slice(0, 10) : "");
-    setDescription(initial?.description ?? "");
-    setError(null);
-  }, [open, initial]);
+    if (open && !wasOpen.current) {
+      const init = initialRef.current;
+      setName(init?.name ?? "");
+      setStatus(init?.status ?? "active");
+      setDeadline(init?.deadline ? new Date(init.deadline).toISOString().slice(0, 10) : "");
+      setDescription(init?.description ?? "");
+      setError(null);
+    }
+    wasOpen.current = open;
+  }, [open]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

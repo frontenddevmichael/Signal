@@ -129,6 +129,112 @@ export const month = query({
   },
 });
 
+/**
+ * Client-scoped month — the mini-calendar on the client detail page. Same event
+ * kinds as the full screen (deadline / followup / invoice / meeting) but only
+ * rows that belong to this contact, so the widget shows "what's happening
+ * around this client" without dragging every client's data in.
+ */
+export const forContact = query({
+  args: {
+    contactId: v.id("contacts"),
+    year: v.number(),
+    month: v.number(),
+  },
+  handler: async (ctx, { contactId, year, month }): Promise<CalendarEvent[]> => {
+    const userId = await userIdOrThrow(ctx);
+    const contact = await ctx.db.get(contactId);
+    if (!contact || contact.userId !== userId) return [];
+    const { start, end } = monthRange(year, month);
+    const now = Date.now();
+    const events: CalendarEvent[] = [];
+
+    // §3 project deadlines for THIS contact.
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_contact", (q) => q.eq("contactId", contactId))
+      .collect();
+    for (const p of projects) {
+      if (!p.deadline || p.deadline < start || p.deadline >= end) continue;
+      events.push({
+        id: `deadline-${p._id}`,
+        kind: "deadline",
+        title: p.name,
+        subtitle: contact.name,
+        at: p.deadline,
+        contactId,
+        status: p.deadline < now ? "overdue" : "upcoming",
+      });
+    }
+
+    // §3 follow-up due dates for THIS contact.
+    const reminders = await ctx.db
+      .query("followUpReminders")
+      .withIndex("by_contact", (q) => q.eq("contactId", contactId))
+      .filter((q) => q.eq(q.field("status"), "pending"))
+      .collect();
+    for (const r of reminders) {
+      if (r.dueAt < start || r.dueAt >= end) continue;
+      events.push({
+        id: `followup-${r._id}`,
+        kind: "followup",
+        title: r.reason,
+        subtitle: `Follow up · ${contact.name}`,
+        at: r.dueAt,
+        contactId,
+        status: r.dueAt < now ? "overdue" : "upcoming",
+      });
+    }
+
+    // §18 invoice due dates for THIS contact (via their projects).
+    const projectIds = new Set(projects.map((p) => p._id));
+    const invoices = await ctx.db.query("invoices").collect();
+    for (const inv of invoices) {
+      if (!inv.dueAt || inv.dueAt < start || inv.dueAt >= end) continue;
+      if (!projectIds.has(inv.projectId)) continue;
+      const status = deriveInvoiceStatus({
+        status: inv.status,
+        amountPaid: inv.amountPaid,
+        amountRefunded: inv.amountRefunded,
+        total: inv.total,
+        dueAt: inv.dueAt,
+        now,
+      });
+      if (status === "paid" || status === "void" || status === "refunded") continue;
+      events.push({
+        id: `invoice-${inv._id}`,
+        kind: "invoice",
+        title: inv.invoiceNumber,
+        subtitle: `${contact.name} · ${status}`,
+        at: inv.dueAt,
+        invoiceId: inv._id,
+        status: status === "overdue" ? "overdue" : status === "partially_paid" ? "partial" : "upcoming",
+      });
+    }
+
+    // §6 meetings matched to THIS contact.
+    const calendarEvents = await ctx.db
+      .query("calendarEvents")
+      .withIndex("by_contact", (q) => q.eq("contactId", contactId))
+      .collect();
+    for (const ev of calendarEvents) {
+      if (ev.startTime < start || ev.startTime >= end) continue;
+      events.push({
+        id: `meeting-${ev._id}`,
+        kind: "meeting",
+        title: ev.title,
+        subtitle: `${contact.name} · ${formatTimeRange(ev.startTime, ev.endTime)}`,
+        at: ev.startTime,
+        contactId,
+        status: "upcoming",
+      });
+    }
+
+    events.sort((a, b) => a.at - b.at);
+    return events;
+  },
+});
+
 /** "14:00 – 15:00" in the viewer's local timezone. */
 function formatTimeRange(startMs: number, endMs: number): string {
   const fmt = (ts: number) =>

@@ -1,9 +1,10 @@
 import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { GenericId } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { writeTimelineEvent } from "./timeline";
+import { sanitizeHtml } from "./sanitizeHtml";
 
 async function userIdOrThrow(ctx: QueryCtx | MutationCtx): Promise<GenericId<"users">> {
   const userId = await getAuthUserId(ctx as any);
@@ -33,7 +34,7 @@ export const create = mutation({
     const noteId = await ctx.db.insert("notes", {
       contactId: args.contactId,
       projectId: args.projectId,
-      body: args.body,
+      body: sanitizeHtml(args.body),
       createdAt: now,
     });
     await writeTimelineEvent(ctx, {

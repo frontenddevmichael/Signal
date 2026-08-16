@@ -1,11 +1,12 @@
 {
-  "name": "signal",
+  "name": "signal-crm",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit && tsc -p convex/tsconfig.json",
     "lint": "oxlint",
     "test": "vitest run",
     "test:smoke": "playwright test",
@@ -26,6 +27,7 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "signal-ui": "workspace:*",
     "@playwright/test": "^1.62.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",

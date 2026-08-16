@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -56,23 +56,30 @@ export function ContactForm({
   const [duplicate, setDuplicate] = useState<{ contactId: string; name: string } | null>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
 
+  // `initial` is a fresh object every parent render (inline prop), so keying the
+  // effect on it would re-snapshot and wipe in-progress edits on ANY re-render
+  // (a background Convex update, a palette keystroke…). Snapshot only when the
+  // dialog transitions from closed → open, using the latest value then.
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
+  const wasOpen = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
-    setName(initial?.name ?? "");
-    setCompany(initial?.company ?? "");
-    setStatus(initial?.status ?? "lead");
-    setSource(initial?.source ?? "");
-    setTags(initial?.tags.join(", ") ?? "");
-    setTimezone(initial?.timezone ?? "");
-    setEmails(
-      initial?.emails.length ? initial.emails : [{ email: "", isPrimary: true }],
-    );
-    setPhones(
-      initial?.phones.length ? initial.phones : [{ phoneNumber: "", isPrimary: true }],
-    );
-    setError(null);
-    setDuplicate(null);
-  }, [open, initial]);
+    if (open && !wasOpen.current) {
+      const init = initialRef.current;
+      setName(init?.name ?? "");
+      setCompany(init?.company ?? "");
+      setStatus(init?.status ?? "lead");
+      setSource(init?.source ?? "");
+      setTags(init?.tags.join(", ") ?? "");
+      setTimezone(init?.timezone ?? "");
+      setEmails(init?.emails.length ? init.emails : [{ email: "", isPrimary: true }]);
+      setPhones(init?.phones.length ? init.phones : [{ phoneNumber: "", isPrimary: true }]);
+      setError(null);
+      setDuplicate(null);
+    }
+    wasOpen.current = open;
+  }, [open]);
 
   const buildPayload = () => ({
     name,

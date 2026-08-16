@@ -20,6 +20,17 @@ export function Modal({
   width?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Keep the latest onClose in a ref so the focus effect depends ONLY on
+  // [open]. Callers pass inline closures (`onClose={() => setX(false)}`); if
+  // onClose were a dependency, ANY parent re-render (e.g. a reactive Convex
+  // query update) would tear down and re-run the effect — restoring focus to
+  // the trigger and re-focusing the dialog container, ripping focus out of
+  // the field the user is typing in. The ref keeps Escape wired to the latest
+  // closure without that churn.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Focus management: move focus into the dialog, trap Tab inside it, restore
   // focus to whatever opened it on close. Keyboard users never escape into the
@@ -32,7 +43,7 @@ export function Modal({
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab" || !dialog) return;
@@ -58,7 +69,7 @@ export function Modal({
       document.body.style.overflow = prev;
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

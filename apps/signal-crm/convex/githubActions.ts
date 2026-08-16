@@ -47,6 +47,11 @@ export const backfill = action({
   handler: async (ctx, args): Promise<{ backfilled: number }> => {
     const conn = await ctx.runQuery(internal.github.getConnection);
     if (!conn.installationId || !githubConfigured()) return { backfilled: 0 };
+    // §9a audit fix — only the project's owner can backfill activity into it.
+    const owned = await ctx.runQuery(internal.github.ownsProjectRepo, {
+      projectRepoId: args.projectRepoId,
+    });
+    if (!owned) return { backfilled: 0 };
 
     const items = await backfillRepoActivity(conn.installationId, args.fullName, args.since);
     return await ctx.runMutation(internal.github.recordBackfill, {
