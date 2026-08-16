@@ -2177,6 +2177,17 @@ select:disabled {
     position: relative;
   }
 
+  /* Labels under the icons — the stack is what makes each icon a destination.
+     Truncate at 320-360px (7 items × ~50px) instead of wrapping or pushing
+     the bar taller; the nav-count badge already floats above the icon. */
+  .tabbar .nav-item > span:not(.nav-count) {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
   .tabbar .nav-count {
     position: absolute;
     top: 5px;

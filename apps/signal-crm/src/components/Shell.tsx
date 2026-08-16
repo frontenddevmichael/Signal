@@ -170,6 +170,9 @@ export function Shell() {
   const isDetail = location.pathname.startsWith("/clients/") || location.pathname.startsWith("/invoices/");
   const backTo = location.pathname.startsWith("/clients/") ? "/" : "/invoices";
 
+  // Mobile tabbar keeps the label — the stack (icon over 11px label) is the
+  // only way icons read as destinations, not decoration. Only the section
+  // grouping labels are desktop-only.
   const nav = (compact: boolean) => (
     <>
       {NAV_SECTIONS.map((section) => (
@@ -187,7 +190,7 @@ export function Shell() {
                 title={compact ? item.label : undefined}
               >
                 <item.icon />
-                {!compact && <span>{item.label}</span>}
+                <span>{item.label}</span>
                 {count > 0 && (
                   <span className="nav-count" aria-label={`${count} ${item.label.toLowerCase()}`}>
                     {count}
@@ -318,9 +321,11 @@ export function Shell() {
           title="Settings"
         >
           <IconSettings />
+          <span>Settings</span>
         </NavLink>
         <button type="button" className="nav-item" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}>
           <IconLogOut />
+          <span>Sign out</span>
         </button>
       </nav>
 

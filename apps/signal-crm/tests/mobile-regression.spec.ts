@@ -213,6 +213,20 @@ test.describe("mobile regression — 390×844", () => {
       "Settings",
       "Sign out",
     ]);
+    // Labels are VISIBLE text, not icon-only — each item must render its
+    // label span (the tabbar stack is what makes icons read as destinations).
+    const visible = await items.evaluateAll((els) =>
+      els.map((el) => (el.textContent ?? "").trim()),
+    );
+    expect(visible).toEqual([
+      "Clients",
+      "Invoices",
+      "Inbox",
+      "Calendar",
+      "Follow-ups",
+      "Settings",
+      "Sign out",
+    ]);
     const heights = await items.evaluateAll((els) =>
       els.map((el) => Math.round(el.getBoundingClientRect().height)),
     );
