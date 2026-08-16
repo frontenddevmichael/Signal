@@ -256,6 +256,20 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | App / main / lib / hooks | — | DONE (Phase 2e: format.ts stale comment fixed; en-NG confirmed deliberate) |
 
 ## Feature log (post-rebuild additions)
+- **Palette footer per-device hints (2026-08-16)** — the command palette's
+  kbd-hint footer now adapts to the primary pointer: under `@media (pointer: coarse)`
+  the keyboard-only `↑↓ navigate` hint is hidden and swaps for a search cue
+  (`IconSearch` + "Type to search"), since arrow keys are meaningless on touch.
+  Fine pointers keep the keyboard hints (touchscreen laptops still have a
+  keyboard); `↵ open` / `esc close` stay on both — tablets have hardware
+  keyboards. CSS-only adaptation (no JS/hydration sniffing), with the hide/show
+  rules prefixed to match the shared `.palette-hint` specificity so the
+  swap actually lands. Permanent guard `tests/palette-footer.spec.ts` (2 tests):
+  fine-pointer shows hints + hides cue; coarse-pointer (hasTouch + CDP-forced
+  `pointer: coarse`) hides hints + shows the cue with its `aria-hidden` glyph,
+  open/close retained. Verified: tsc clean, 206/206 vitest, 39/39 Playwright
+  (single-worker — the 2-worker sign-in contention flake, previously documented,
+  re-observed once and resolved with `--workers=1`).
 - **Data export (2026-08-16)** — the missing "export it" claim, closed. `convex/exportData.ts` (`api.exportData.all`): one authenticated query returning every user-owned row — contacts + their contact_emails/contact_phones, projects, repos/project_repos/repo_activity, notes, timeline_events, invoices (raw counters + `derivedStatus` per §18) + line items, messages, documents, calendar_events (meetings incl.), follow_up_reminders, custom_field_definitions/values, portal_tokens, push_subscriptions, sessions, api_keys (**metadata-only** — labels/created/last-used, never the hashed key), invoice_counters, audit_log, contact_undo, gmail_filter_setup, user. All scoped via `userId`/owned-subtree; browser never re-derives schema. `src/lib/export.ts`: pure bundle builder (manifest + README + 24 entity JSON + 22 CSVs, deterministic order, RFC-style CSV escaping, integer minor-unit money, ISO-8601 UTC dates) — zero DOM/network, Vitest-covered (19 tests). `ExportSection.tsx`: Settings → Data group → "Download archive" → JSZip client-side → `signal-export-YYYY-MM-DD.zip`; spinner + disabled while busy, toast on success/error, no partial downloads. Playwright contract guard in the regression suite (download fires, manifest parses, probe client + integer money present in both JSON and CSV). Verified: tsc clean, 206/206 vitest, 37/37 Playwright (two isolated re-runs confirmed the sign-in cold-JIT flake, not regressions), build green.
 
 ## Verification baseline (pre-fix)

@@ -1653,6 +1653,30 @@ select:disabled {
   font-size: 10px;
 }
 
+.palette-footer .palette-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Touch adaptation — on coarse-pointer (touch) devices the arrow-key hints
+   are keyboard-only noise, so they swap for a search cue. Keyboard hints
+   stay for fine-primary pointers even on touchscreen laptops, which have a
+   keyboard and trackpad. Rules are prefixed to match the shared `.palette-hint`
+   specificity so the hide/show actually lands. */
+.palette-footer .palette-hint-touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .palette-footer .palette-hint-nav {
+    display: none;
+  }
+  .palette-footer .palette-hint-touch {
+    display: inline-flex;
+  }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { initials } from "../lib/format";
 import { bestFieldScore } from "../lib/fuzzy";
-import { IconCommand, IconInvoices, IconPlus } from "./Icons";
+import { IconCommand, IconInvoices, IconPlus, IconSearch } from "./Icons";
 
 /**
  * §2.4 — the command palette. One of Linear's most recognizable patterns and
@@ -380,9 +380,12 @@ export function CommandPalette() {
             </p>
           )}
           <div className="palette-footer">
-            <span><kbd className="kbd">↑↓</kbd> navigate</span>
-            <span><kbd className="kbd">↵</kbd> open</span>
-            <span><kbd className="kbd">esc</kbd> close</span>
+            {/* Arrow-key hints are keyboard-only — on coarse-pointer (touch)
+                devices they're noise, so they swap for a search cue instead. */}
+            <span className="palette-hint palette-hint-nav"><kbd className="kbd">↑↓</kbd> navigate</span>
+            <span className="palette-hint palette-hint-touch"><IconSearch aria-hidden="true" style={{ width: 12, height: 12 }} /> Type to search</span>
+            <span className="palette-hint"><kbd className="kbd">↵</kbd> open</span>
+            <span className="palette-hint"><kbd className="kbd">esc</kbd> close</span>
           </div>
         </div>
       </div>
