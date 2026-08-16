@@ -256,6 +256,21 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | App / main / lib / hooks | — | DONE (Phase 2e: format.ts stale comment fixed; en-NG confirmed deliberate) |
 
 ## Feature log (post-rebuild additions)
+- **Touch sweep — hover-revealed quick actions (2026-08-16)** — audited the
+  whole product for keyboard-only affordances leaking onto touch: no
+  double-click, no drag-and-drop, no hover-gated JS anywhere (all `onMouseEnter`
+  uses are highlight/roving, tap works), and every HTML `title=` is an
+  aria-labeled duplicate (modal/empty-state `title` props are React props, not
+  hover hints). The one genuine leak: `.data-table .quick-actions` (§2.6
+  hover-reveal) are invisible-but-tappable on touch. Fixed: `@media (hover: none)`
+  shows them at rest (fine pointers keep the reveal; keyboard keeps
+  `:focus-within`), and in the ≤1024px touch floor the 28px `.quick-action`
+  pads its tap target out to 44px via an `::after` overlay (`inset: -8px`) so
+  row density is preserved. Permanent guard `tests/quick-actions-touch.spec.ts`
+  (2 tests): fine-pointer reveal stays hover-gated; coarse-pointer (hasTouch +
+  CDP-forced `hover: none`) shows actions at rest even under synthetic hover,
+  asserts the -8px ::after inset, and taps through to the client. Verified:
+  tsc clean, 206/206 vitest, 41/41 Playwright (single-worker).
 - **Palette footer per-device hints (2026-08-16)** — the command palette's
   kbd-hint footer now adapts to the primary pointer: under `@media (pointer: coarse)`
   the keyboard-only `↑↓ navigate` hint is hidden and swaps for a search cue

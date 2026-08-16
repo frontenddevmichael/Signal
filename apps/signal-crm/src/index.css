@@ -2205,6 +2205,15 @@ select:disabled {
   opacity: 1;
 }
 
+/* Touch — no hover means the §2.6 reveal never fires, leaving quick actions
+   invisible-but-tappable. Coarse pointers get them at rest (fine pointers
+   keep the hover reveal; keyboard already has :focus-within above). */
+@media (hover: none) {
+  .data-table .quick-actions {
+    opacity: 1;
+  }
+}
+
 .quick-action {
   display: inline-flex;
   align-items: center;
@@ -3537,5 +3546,15 @@ select:disabled {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+  /* Quick actions — the 28px visual stays put; the ::after overlay pads the
+     tap target out to the 44px floor without growing the row (density). */
+  .quick-action {
+    position: relative;
+  }
+  .quick-action::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
   }
 }
