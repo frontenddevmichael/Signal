@@ -6,6 +6,48 @@ and the token ground truth `apps/signal-crm/src/index.css`.
 
 Status legend per unit: `DONE` (v3-compliant, verified) · `FIX` (defects found, listed below) · `REBUILD` (needs fresh implementation).
 
+## Re-audit (2026-08-16, second full pass — fresh eyes, per user re-invocation of the law)
+
+**Checkpoint BEFORE any rebuild code — pending user sign-off.** Ran the full §2 criteria against the
+current tree: read `signal-design.md` in full, walked every route/component file (45 TSX), grepped
+every §2/§5 criterion. Verdict: the system is v3-compliant in the large, with **three genuine
+rebuild candidates** (below) and four notes/design confirmations. No numbered pagination, no legacy
+hue/emoji/old-easing remnants, no undefined `var(--…)` references (all aliases like `--border`/
+`--mono`/`--text-1/2/3`/`--canvas`/`--danger`/`--radius-control`/`--duration-standard` resolve),
+AA text tokens exactly per doc (`--text-tertiary` dark `#878a8f` / light `#6d6e70`), single easing
+with all four entrances (`row-in`/`card-rise`/`nav-in`/`skeleton-rise`) on `backwards`, four glass
+shells exactly (`.quick-menu`/`.user-popover`/`.command-palette`/`.modal` — shell-not-payload),
+global `@supports (corner-shape: squircle)`, `prefers-reduced-motion`, press/disabled registers,
+monochrome `.beacon-dot`, 14 ConfirmDialog sites, undo toasts, 17 `role="status"`, 44px floor.
+
+### Defects to fix (REBUILD candidates — delete-and-rebuild, per the law)
+- [ ] **MED — `.input:focus` focus ring** (index.css:720-723): suppresses `outline` for
+  `border-strong` + 3px `--beacon-faint` halo. §3.0 says the single 2px `--beacon` ring is the
+  only focus treatment and "the old `--border-strong` variant is deleted"; §3.1 says focus = the
+  beacon ring. Selects/textareas get the global ring, so focus language differs across form
+  controls. Rebuild `.input` focus to the 2px beacon ring (outline, not box-shadow halo).
+- [ ] **MED — FollowUps + Inbox list rows** (`.nudge-row`/`.inbox-row`, index.css:3479/3484):
+  flat canvas rows — no hover state, no elevation, no entrance, no radius token; TSX uses no
+  `row-in`/`card-rise`. Never rebuilt onto the §3.4 list register. Rebuild rows (entrance +
+  hover tone-shift + rich-row structure) in both screens.
+- [ ] **LOW — Gmail setup + reply box tail CSS** (`.gmail-setup`, `.copy-block/.copy-row/.copy-text`,
+  `.field-note`, `.reply-box`, `.reply-input`, `.integration-sub`, `.row-label`, `.gmail-actions`;
+  index.css:3465-3477): pre-v3 single-line style, raw `8px` radii, no token corners. Behaviors
+  already fixed (copy-button block, skeletons, aria); restyle onto tokens + radius scale.
+
+### Notes / design confirmations (flag, don't silently change)
+- `.chip` `border-radius: 999px` (index.css:2581) — off the radius scale (pre-existing flag).
+- `.reply-input` uses `var(--mono)` (Geist Mono) for message composition — §1.2 reserves mono
+  for numerals, never body prose. Confirm intent at rebuild.
+- `.spinner` (700ms linear) / `.skeleton` (1.6s ease-in-out) hardcode easings — infinite loops,
+  conventional exemption from the single-easing rule; confirm.
+- `--beacon-strong` token defined, zero usage (dead token — remove or reserve).
+
+### Verified clean this pass (evidence inline above + greps):
+zero legacy hue/emoji/pagination/TODO; hardcoded hex only in the §3.7 print stylesheet;
+entrance fill-modes; glass host list; token values vs doc; hue-on-dots-only; screen states
+(Portal role=alert/EmptyState variants, Inbox skeleton, FollowUps per-row pending+spinner).
+
 ## Audit result (2026-08-15, three parallel passes)
 
 **The v3 "Quiet Future OS" rebuild has ALREADY been executed across the product.** Every one
