@@ -133,6 +133,7 @@ export function InvoicesList() {
               key={s}
               type="button"
               className={`chip${filterStatus === s ? " chip-active" : ""}`}
+              aria-pressed={filterStatus === s}
               onClick={() => setFilterStatus(s)}
             >
               {s === "all" ? "All" : STATUS_LABEL[s]}

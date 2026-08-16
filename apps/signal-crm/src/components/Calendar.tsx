@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -12,6 +12,11 @@ const KIND_ICON: Record<CalendarEvent["kind"], React.ComponentType<React.SVGProp
   invoice: IconInvoices,
   meeting: IconCalendar,
 };
+
+/* Render-stable "today" key — computed once at module scope so the roving
+   focus entry point and the today-cell ring never depend on a fresh Date
+   per render. */
+const TODAY_KEY = dayKey(Date.now());
 
 /* §11 mobile legend — below 640px the chip titles are hidden, so the kind
    glyphs and status dots carry the whole register. Explicit list keeps the
@@ -56,6 +61,38 @@ export function Calendar() {
     }
     return map;
   }, [events]);
+
+  // §2.4 keyboard grid — roving tabindex: the arrow keys move focus between
+  // the 42 cells (7 columns, 6 rows), Home/End jump to the row ends, the
+  // cell boundaries clamp so focus never escapes the grid. Today's cell (or
+  // the first in-month day) starts as the tabbable entry point.
+  const initialFocus = (() => {
+    const hit = cells.findIndex((c) => dayKey(c.date.getTime()) === TODAY_KEY);
+    return hit >= 0 ? hit : Math.max(0, cells.findIndex((c) => c.inMonth));
+  })();
+  const [focusIdx, setFocusIdx] = useState<number>(initialFocus);
+  const cellRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Moving months rebuilds the grid — reset the roving entry point to the new
+  // month's first in-month day so Tab lands somewhere sensible.
+  useEffect(() => {
+    setFocusIdx(initialFocus);
+  }, [initialFocus]);
+
+  const onGridKey = (e: React.KeyboardEvent, idx: number) => {
+    let next = -1;
+    if (e.key === "ArrowRight") next = Math.min(41, idx + 1);
+    else if (e.key === "ArrowLeft") next = Math.max(0, idx - 1);
+    else if (e.key === "ArrowDown") next = Math.min(41, idx + 7);
+    else if (e.key === "ArrowUp") next = Math.max(0, idx - 7);
+    else if (e.key === "Home") next = idx - (idx % 7);
+    else if (e.key === "End") next = idx - (idx % 7) + 6;
+    if (next !== -1 && next !== idx) {
+      e.preventDefault();
+      setFocusIdx(next);
+      cellRefs.current[next]?.focus();
+    }
+  };
 
   const shift = (delta: number) => {
     setCursor((c) => {
@@ -120,16 +157,20 @@ export function Calendar() {
               <span key={d}>{d}</span>
             ))}
           </div>
-          <div className="cal-grid" role="grid" aria-label={`Calendar for ${monthTitle}`}>
-            {cells.map((cell) => {
+          <div className="cal-grid" role="grid" aria-label={`Calendar for ${monthTitle}`} onKeyDown={(e) => onGridKey(e, focusIdx)}>
+            {cells.map((cell, i) => {
               const key = dayKey(cell.date.getTime());
               const dayEvents = byDay.get(key) ?? [];
-              const isToday = key === dayKey(today.getTime());
+              const isToday = key === TODAY_KEY;
               return (
                 <div
                   key={key}
+                  ref={(el) => {
+                    cellRefs.current[i] = el;
+                  }}
                   role="gridcell"
                   aria-label={cell.date.toDateString()}
+                  tabIndex={i === focusIdx ? 0 : -1}
                   className={`cal-cell${cell.inMonth ? "" : " out"}${isToday ? " today" : ""}`}
                 >
                   <span className="cal-daynum num">{cell.date.getDate()}</span>
@@ -142,6 +183,7 @@ export function Calendar() {
                           type="button"
                           className={`cal-chip${ev.status === "overdue" ? " overdue" : ""}${ev.status === "partial" ? " partial" : ""}`}
                           title={`${ev.title} — ${ev.subtitle}`}
+                          aria-label={`${ev.title} — ${ev.subtitle}`}
                           onClick={() => goTo(ev)}
                         >
                           <span className="cal-dot" aria-hidden="true" />

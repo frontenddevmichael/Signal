@@ -2386,6 +2386,19 @@ select:disabled {
   background: var(--surface-3);
 }
 
+/* Right-aligned numeric cells (client financials Total) — beats the table's
+   left-align default at 0,2,0 over the 0,1,1 th/td rules. */
+.data-table .ta-r {
+  text-align: right;
+}
+
+/* Clickable row (client financials) — the row is a keyboard-accessible
+   role="link"; the shared row hover tone is the affordance, this adds the
+   link cursor. */
+.data-table .row-link {
+  cursor: pointer;
+}
+
 .client-name {
   font-weight: 510;
   color: var(--text-primary);

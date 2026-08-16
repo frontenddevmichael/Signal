@@ -719,3 +719,156 @@ test.describe("user menu popover focus contract", () => {
     await expect(trigger).toBeFocused();
   });
 });
+
+/**
+ * Phase 2d — screen-level HCI contracts: the client-detail tablist (roving
+ * tabindex + arrow keys + panel binding), the financials table (row-link
+ * keyboard path), the full-screen calendar grid (arrow navigation), and the
+ * list filter chips (aria-pressed). These guard the contract, not pixels.
+ */
+test.describe("Phase 2d screen contracts", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test("client detail: tablist ARIA — roving tabindex, arrow keys, panels bound", async ({ page }) => {
+    await signIn(page);
+    expect(CLIENT_URL).toBeTruthy();
+    await page.goto(CLIENT_URL);
+    await expect(page.getByRole("heading", { name: CLIENT_NAME, exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const tabs = page.locator('[role="tablist"] [role="tab"]');
+    await expect(tabs).toHaveCount(5);
+
+    // Panels are bound — the active (timeline) tab points at a rendered panel
+    // that names its tab back.
+    await expect(page.locator('[id="client-tab-timeline"]')).toHaveAttribute(
+      "aria-controls",
+      "client-panel-timeline",
+    );
+    await expect(page.locator('[id="client-panel-timeline"]')).toHaveAttribute(
+      "aria-labelledby",
+      "client-tab-timeline",
+    );
+
+    // Roving tabindex: only the active tab is in the tab order.
+    const focused = page.locator('[role="tab"][aria-selected="true"]');
+    await expect(focused).toHaveAttribute("tabindex", "0");
+    const tabOrders = await tabs.evaluateAll((els) =>
+      els.map((el) => el.getAttribute("tabindex")),
+    );
+    expect(tabOrders.filter((t) => t === "0")).toHaveLength(1);
+
+    // ArrowRight activates AND focuses the next tab (wrap-around on the last).
+    await focused.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveAttribute(
+      "id",
+      "client-tab-projects",
+    );
+    await expect(page.locator(":focus")).toHaveAttribute("id", "client-tab-projects");
+
+    // End jumps to the last tab; the panel follows via tab switching.
+    await page.keyboard.press("End");
+    await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveAttribute(
+      "id",
+      "client-tab-financials",
+    );
+  });
+
+  test("client detail: financials table is the data-table register, rows keyboard-accessible", async ({ page }) => {
+    await signIn(page);
+    expect(CLIENT_URL).toBeTruthy();
+    const expectingInvoice = INVOICE_URL;
+    await page.goto(CLIENT_URL);
+    await expect(page.getByRole("heading", { name: CLIENT_NAME, exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByRole("tab", { name: /Financials/ }).click();
+    const panel = page.locator("#client-panel-financials");
+    await expect(panel).toBeVisible();
+
+    // The seeded client has an invoice → the table uses the data-table
+    // register with a click-AND-keyboard-accessible row link.
+    const table = panel.locator("table.data-table");
+    await expect(table).toBeVisible({ timeout: 10_000 });
+
+    // The row is a link: role, tabIndex and aria-label.
+    const row = table.locator('tbody tr[role="link"]');
+    await expect(row).toHaveCount(1);
+    await expect(row).toHaveAttribute("tabindex", "0");
+    await expect(row).toHaveAttribute("aria-label", /Open invoice/);
+
+    // Tab to the row and activate with Enter → lands on the invoice detail.
+    row.focus();
+    await expect(row).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(new RegExp(expectedInvoicePath(expectingInvoice)));
+  });
+
+  test("calendar: grid arrow navigation — roving focus stays in the 42-cell grid", async ({ page }) => {
+    await signIn(page);
+    await page.goto("/calendar");
+    const grid = page.locator(".cal-grid");
+    await expect(grid).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".cal-cell")).toHaveCount(42);
+
+    // Today's cell is the roving entry point.
+    await page.locator(".cal-cell.today").focus();
+    const idx = async () =>
+      page.evaluate(() => {
+        const cells = Array.from(document.querySelectorAll(".cal-cell"));
+        return cells.indexOf(document.activeElement as HTMLElement);
+      });
+
+    const start = await idx();
+    await page.keyboard.press("ArrowRight");
+    expect(await idx()).toBe(Math.min(41, start + 1));
+
+    // Home → the first cell of the row (start of the Monday-first week).
+    await page.keyboard.press("Home");
+    expect((await idx()) % 7).toBe(0);
+
+    // ArrowDown stays within the grid (row below), never escaping the grid.
+    const homeIdx = await idx();
+    await page.keyboard.press("ArrowDown");
+    expect(await idx()).toBe(Math.min(41, homeIdx + 7));
+
+    // Boundary clamp: ArrowUp from the top row cannot leave the grid.
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowUp");
+    expect((await idx()) % 7).toBe(0);
+  });
+
+  test("list filter chips expose aria-pressed (clients + invoices)", async ({ page }) => {
+    await signIn(page);
+
+    await page.goto("/");
+    const clientBar = page.locator('[role="group"][aria-label="Filter by status"]');
+    await expect(clientBar).toBeVisible();
+    await clientBar.getByRole("button", { name: "active" }).click();
+    await expect(clientBar.getByRole("button", { name: "active" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(clientBar.getByRole("button", { name: "All" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    await page.goto("/invoices");
+    const invoiceBar = page.locator('[role="group"][aria-label="Filter by status"]');
+    await expect(invoiceBar).toBeVisible();
+    await invoiceBar.getByRole("button", { name: "sent" }).click();
+    await expect(invoiceBar.getByRole("button", { name: "sent" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+});
+
+function expectedInvoicePath(url: string): string {
+  const m = url.match(/\/invoices\/([^/]+)/);
+  return m ? `\\/invoices\\/${m[1]}` : "^\\/invoices\\/";
+}

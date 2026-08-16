@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -50,6 +50,24 @@ export function ClientDetail() {
   const undoDelete = useMutation(api.contacts.undoDelete);
 
   const [tab, setTab] = useState<Tab>("timeline");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // §22.14 — full tablist ARIA: roving tabindex (only the active tab is in the
+  // tab order), arrow-key activation with Home/End, and panels bound to their
+  // tab via aria-controls/aria-labelledby. ArrowLeft wraps to the last tab so
+  // the strip never dead-ends at either edge.
+  const onTabKey = (e: React.KeyboardEvent, idx: number) => {
+    let next = -1;
+    if (e.key === "ArrowRight") next = idx + 1 === TABS.length ? 0 : idx + 1;
+    else if (e.key === "ArrowLeft") next = idx === 0 ? TABS.length - 1 : idx - 1;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = TABS.length - 1;
+    if (next !== -1) {
+      e.preventDefault();
+      setTab(TABS[next].id);
+      tabRefs.current[next]?.focus();
+    }
+  };
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [projectFormOpen, setProjectFormOpen] = useState(false);
@@ -217,7 +235,7 @@ export function ClientDetail() {
       )}
 
       <div className="detail-tabs" role="tablist" aria-label="Client sections">
-        {TABS.map((t) => {
+        {TABS.map((t, i) => {
           const count =
             t.id === "projects"
               ? stats?.projectsCount
@@ -229,11 +247,18 @@ export function ClientDetail() {
           return (
             <button
               key={t.id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
               type="button"
               role="tab"
+              id={`client-tab-${t.id}`}
               aria-selected={tab === t.id}
+              aria-controls={`client-panel-${t.id}`}
+              tabIndex={tab === t.id ? 0 : -1}
               className={`tab${tab === t.id ? " active" : ""}`}
               onClick={() => setTab(t.id)}
+              onKeyDown={(e) => onTabKey(e, i)}
             >
               {t.label}
               {count !== undefined && count > 0 && (
@@ -247,7 +272,7 @@ export function ClientDetail() {
       </div>
 
       {tab === "timeline" && (
-        <section aria-label="Timeline">
+        <section role="tabpanel" id="client-panel-timeline" aria-labelledby="client-tab-timeline">
           <ClientCalendar contactId={contactId as Id<"contacts">} />
           <NoteComposer contactId={contactId} />
           <MeetingsPanel contactId={contactId as Id<"contacts">} />
@@ -258,7 +283,7 @@ export function ClientDetail() {
       )}
 
       {tab === "projects" && (
-        <section aria-label="Projects">
+        <section role="tabpanel" id="client-panel-projects" aria-labelledby="client-tab-projects">
           <div className="section-head">
             <h3>Projects</h3>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => setProjectFormOpen(true)}>
@@ -279,61 +304,75 @@ export function ClientDetail() {
       )}
 
       {tab === "repos" && (
-        <section aria-label="Linked repos and activity">
+        <section role="tabpanel" id="client-panel-repos" aria-labelledby="client-tab-repos">
           <RepoActivity contactId={contactId} />
         </section>
       )}
       {tab === "docs" && (
-        <EmptyState
-          icon={<IconRepo aria-hidden="true" />}
-          title="No documents"
-          body="Proposals and contracts will live here, generated from templates and linked back to this client."
-        />
-      )}
-      {tab === "financials" &&
-        (stats?.invoices && stats.invoices.length > 0 ? (
-          <section aria-label="Invoices">
-            <div className="section-head">
-              <h3>Invoices</h3>
-            </div>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Number</th>
-                    <th>Status</th>
-                    <th>Issued</th>
-                    <th>Due</th>
-                    <th className="ta-r">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.invoices.map((inv) => (
-                    <tr
-                      key={inv._id}
-                      className="row-link"
-                      onClick={() => navigate(`/invoices/${inv._id}`)}
-                    >
-                      <td className="num">{inv.invoiceNumber}</td>
-                      <td>
-                        <span className={`status status-${inv.status}`}>{inv.status}</span>
-                      </td>
-                      <td className="num">{inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString() : "—"}</td>
-                      <td className="num">{inv.dueAt ? new Date(inv.dueAt).toLocaleDateString() : "—"}</td>
-                      <td className="num ta-r">{formatMoney(inv.total, inv.currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : (
+        <section role="tabpanel" id="client-panel-docs" aria-labelledby="client-tab-docs">
           <EmptyState
-            icon={<IconMoney aria-hidden="true" />}
-            title="No invoices yet"
-            body="Create an invoice from a project and it lands here — total billed, open balance and payment history at a glance."
+            icon={<IconRepo aria-hidden="true" />}
+            title="No documents"
+            body="Proposals and contracts will live here, generated from templates and linked back to this client."
           />
-        ))}
+        </section>
+      )}
+      {tab === "financials" && (
+        <section role="tabpanel" id="client-panel-financials" aria-labelledby="client-tab-financials">
+          {stats?.invoices && stats.invoices.length > 0 ? (
+            <>
+              <div className="section-head">
+                <h3>Invoices</h3>
+              </div>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Number</th>
+                      <th>Status</th>
+                      <th>Issued</th>
+                      <th>Due</th>
+                      <th className="ta-r">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.invoices.map((inv) => (
+                      <tr
+                        key={inv._id}
+                        className="row-link"
+                        role="link"
+                        tabIndex={0}
+                        aria-label={`Open invoice ${inv.invoiceNumber}`}
+                        onClick={() => navigate(`/invoices/${inv._id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            navigate(`/invoices/${inv._id}`);
+                          }
+                        }}
+                      >
+                        <td className="num">{inv.invoiceNumber}</td>
+                        <td>
+                          <span className={`status status-${inv.status}`}>{inv.status}</span>
+                        </td>
+                        <td className="num">{inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString() : "—"}</td>
+                        <td className="num">{inv.dueAt ? new Date(inv.dueAt).toLocaleDateString() : "—"}</td>
+                        <td className="num ta-r">{formatMoney(inv.total, inv.currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              icon={<IconMoney aria-hidden="true" />}
+              title="No invoices yet"
+              body="Create an invoice from a project and it lands here — total billed, open balance and payment history at a glance."
+            />
+          )}
+        </section>
+      )}
 
       <div className="detail-section">
         <h3>Custom fields</h3>

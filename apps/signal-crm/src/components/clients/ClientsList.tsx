@@ -120,6 +120,7 @@ export function ClientsList() {
               key={s}
               type="button"
               className={`chip${filterStatus === s ? " chip-active" : ""}`}
+              aria-pressed={filterStatus === s}
               onClick={() => setFilterStatus(s)}
             >
               {s === "all" ? "All" : s}
@@ -204,7 +205,7 @@ export function ClientsList() {
                             <Link to={`/clients/${c._id}`} className="client-name">
                               {c.name}
                             </Link>
-                            {stale && <span className="beacon-dot" aria-label="Needs attention" />}
+                            {stale && <span className="beacon-dot" role="status" aria-label="Needs attention" />}
                           </div>
                           {c.primaryEmail && <div className="cell-sub">{c.primaryEmail}</div>}
                         </div>

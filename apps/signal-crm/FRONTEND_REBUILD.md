@@ -73,7 +73,31 @@ Phases:
   `aria-label="Primary navigation"` (distinct string, no duplicate landmark). Verified: `tsc --noEmit`
   clean, 187/187 vitest, vite build green, oxlint 0 errors (1 pre-existing warning in
   `convex/sessions.ts`, untouched), Playwright 30/30.
-- **2d screens** — PENDING: ClientsList, ClientDetail, Invoices, InvoiceDetail, Calendar, FollowUps, Inbox.
+- **2d screens** — DONE (2026-08-16; scoped per unit — see table): ClientsList (filter chips
+  `aria-pressed`, the list-view beacon dot now `role="status"` so "Needs attention" is actually
+  announced, not an aria-label on a bare span), ClientDetail (two HIGH defects fixed: the financials
+  table dropped the orphan `.table`/`.ta-r`/`.row-link` classes for the real `.data-table` register
+  with new `.data-table .ta-r` (right-align, wins the 0,1,1 th/td defaults at 0,2,0) and
+  `.data-table .row-link` (cursor) rules; rows are now keyboard-accessible `role="link"` +
+  `tabIndex={0}` + Enter/Space activation + aria-label. Tablist rebuilt to full ARIA: roving
+  tabindex (only the active tab in the tab order), ArrowLeft/Right activation with wrap + Home/End
+  via a `useRef` map, panels bound with `aria-controls`/`aria-labelledby` + `role="tabpanel"`,
+  every panel wrapped in its role-bearing section incl. the docs empty-state), InvoicesList
+  (filter chips `aria-pressed`), Calendar (full grid got keyboard nav — roving `tabIndex` over the
+  42 cells, ArrowLeft/Right/Down/Up clamping at the grid edges, Home/End to row ends, render-stable
+  `TODAY_KEY` at module scope so focus state never depends on a fresh `Date` per render, month
+  changes reset the roving entry point; chips gained an explicit `aria-label` so the mobile
+  accessible name no longer rides the `title` fallback), FollowUps (Done/Dismiss now pending-aware:
+  per-row `pending` state disables BOTH row buttons while one mutation runs, inline spinner on the
+  running button, `.catch` → error toast, and Dismiss finally toasts too — the audit's
+  fire-and-forget + inconsistent-feedback gap), InvoiceDetail + Inbox carried as already DONE
+  (audit: zero defects). New permanent Playwright guards (`Phase 2d screen contracts`, 4 tests):
+  tablist roving/arrow/panel binding, financials row-link keyboard path, calendar grid arrow
+  navigation (index-delimited, robust regardless of today's position), list chips `aria-pressed`
+  on both lists. Verified: `tsc --noEmit` clean, 187/187 vitest, vite build green, oxlint 0 errors
+  (1 pre-existing `convex/sessions.ts` warning untouched), Playwright 34/34 (one run caught a
+  smoke-suite cold-JIT `auth:signIn` contention flake under 2 workers — passes isolated at 14.8s,
+  same as the trace in 2b; no product change involved).
 - **2e settings/integrations/forms** — PENDING: SignIn, ContactForm, InvoiceForm, MergeDialog, projects, notes, meetings, gmail, integrations, settings, portal, mini-calendar.
 - **Phase 3 HCI pass** — PENDING: StrictMode guards, aria-pressed, focus indicators, no-catch mutations, confirm/undo hardness.
 - **Phase 4 verification + commit** — PENDING: full suite + FRONTEND_REBUILD.md final.
@@ -86,8 +110,8 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 
 ### HIGH — real behavioral bugs
 - [ ] **InvoiceForm edit mode dead-end** (`invoices/InvoiceForm.tsx:70-72`): `useEffect([contactId])` clears `projectId` on mount in edit mode → Project select locked blank + Save permanently disabled. Guard with `if (!editing)`.
-- [ ] **ClientDetail financials table unstyled + rows not keyboard-accessible** (`clients/ClientDetail.tsx`): `.table` / `.ta-r` / `.row-link` are orphan classes with no CSS rule — no borders, no right-aligned Total, no cursor/hover affordance, `<tr onClick>` has no tabIndex/role/keydown path.
-- [ ] **ClientDetail tablist incomplete ARIA**: no roving tabindex, no arrow-key nav, no `aria-controls`/`role="tabpanel"`/`aria-labelledby` on panels.
+- [x] **ClientDetail financials table unstyled + rows not keyboard-accessible** (`clients/ClientDetail.tsx`): `.table` / `.ta-r` / `.row-link` are orphan classes with no CSS rule — no borders, no right-aligned Total, no cursor/hover affordance, `<tr onClick>` has no tabIndex/role/keydown path.
+- [x] **ClientDetail tablist incomplete ARIA**: no roving tabindex, no arrow-key nav, no `aria-controls`/`role="tabpanel"`/`aria-labelledby` on panels.
 
 ### MEDIUM — StrictMode / state
 - [ ] **MergeDialog double-create under StrictMode** (`clients/MergeDialog.tsx:65-82`): deps-`[]` effect calls `contacts.create({force:true})` twice in dev → orphan contact B. Add idempotency guard.
@@ -95,20 +119,20 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 - [ ] **No visible focus indicators on two editors**: `.palette-input` (`CommandPalette`, index.css:1558) and `.note-editor` (`NoteComposer`, index.css:3020) both `outline: none` later/equal specificity than the global `:focus-visible` rule.
 - [ ] **ConfirmDialog swallows errors** (`ui/ConfirmDialog.tsx`): throwing `onConfirm` → unhandled rejection, dialog stays open, no message. Add error state.
 - [ ] **Fire-and-forget mutations with no `.catch`** (unhandled rejections, no user feedback): `ProjectRepos` Unlink, `SecuritySettings` revokeSession/signOutEverywhere/revokeKey, `GmailConnect.setTriage`, `GmailSetupBlock.ensure/markAdded`, `CustomFieldsEditor.setValue`, `useOAuthCallbacks.storeInstallation`, `PreferencesSection` Save. Add pending/disabled + catch→toast.
-- [ ] **FollowUps Done/Dismiss** fire unawaited, no pending/disabled state, no error path, inconsistent feedback (Done toasts, Dismiss doesn't).
+- [x] **FollowUps Done/Dismiss** fire unawaited, no pending/disabled state, no error path, inconsistent feedback (Done toasts, Dismiss doesn't).
 - [ ] **Toast controls below 44px touch floor** (`ui/Toasts.tsx`): `.toast-close` 24px, `.undo` ~28px on mobile.
 
 ### LOW — polish / semantics
 - [ ] **Hardcoded hue fallbacks in CSS tail** (index.css:3432,3447-3448): `var(--amber, #b45309)`, `var(--danger, #b91c1c)`, `var(--success, #15803d)` — last surviving pre-v3 attention colors; `.status-pending` redefined at :3432 shadowing the token version at :785.
 - [ ] **WhatsAppConnect 🟢/⚠️ emoji-as-icon** (`integrations/WhatsAppConnect.tsx`): hue-based status off the monochrome register; 🟢 not `aria-hidden`, announced to SRs.
-- [ ] **Filter chips lack `aria-pressed`/`aria-current`** (ClientsList, InvoicesList, theme selector).
+- [x] **Filter chips lack `aria-pressed`** (ClientsList, InvoicesList) — fixed in Phase 2d; theme selector radiogroup is already `role="radio"`/`aria-checked` but still button-based (arrow nav pending in Phase 2e).
 - [x] **Duplicate `aria-label="Primary"` landmarks** in `Shell.tsx` (aside + tabbar); inner sidebar `<nav>` unlabeled.
 - [ ] **QuickCreate menu semantics** (`Shell.tsx`): `role="menu"`/`menuitem` but no arrow-key nav, no focus move into menu, no `aria-haspopup` on trigger.
 - [ ] **UserMenu popover** (`UserMenu.tsx`): `role="dialog"` but not `aria-modal`, no focus trap, no initial focus move.
 - [ ] **IconAlert doc/render mismatch** (`Icons.tsx:149`): comment says "Filled" but renders outline (base `Svg` sets `fill="none"`, IconAlert never overrides).
 - [ ] **EmptyState duplicates IconClients glyph** with `strokeLinejoin="round"` (register is miter) instead of importing the Icons module.
 - [ ] **Portal error states lack `role="alert"`**; no focus management on token redemption.
-- [ ] **Calendar grids** (full + mini): `role="grid"` without focusable cells / arrow-key nav; chips' mobile accessible name relies on `title` fallback.
+- [ ] **Calendar grids**: the full grid is fixed in Phase 2d (roving tabindex + arrow keys, chips carry explicit aria-label); the mini-calendar (`ClientCalendar.tsx`) still needs the same treatment in Phase 2e.
 - [ ] **PreferencesSection**: Save has no loading state; theme radiogroup is buttons (no arrow-key nav); `role="radio"` + `aria-checked` pattern otherwise correct.
 - [ ] **CustomFieldsSection**: `select` fields can be created with zero options (no guard on `optionsText`).
 - [ ] **GmailSetupBlock `setup.rows[0]` logic smell** (`gmail/GmailSetupBlock.tsx:39-42`): flags reused for every filter group.
@@ -132,12 +156,12 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | ConfirmDialog | `ui/ConfirmDialog.tsx` | FIX (error state on throwing onConfirm) |
 | Toasts | `ui/Toasts.tsx` | FIX (44px floor on close/undo) |
 | Icons | `Icons.tsx` | FIX (IconAlert fill; EmptyState glyph reuse) |
-| Clients list | `clients/ClientsList.tsx` | FIX (aria-pressed chips; stale beacon role) |
-| Client detail | `clients/ClientDetail.tsx` | FIX (financials table, tablist ARIA) |
-| Client calendar | `clients/ClientCalendar.tsx` | FIX (grid keyboard nav) |
+| Clients list | `clients/ClientsList.tsx` | DONE (Phase 2d: chips aria-pressed; beacon role=status) |
+| Client detail | `clients/ClientDetail.tsx` | DONE (Phase 2d: financials data-table + row-link keyboard; tablist full ARIA) |
+| Client calendar | `clients/ClientCalendar.tsx` | FIX (mini grid keyboard nav — Phase 2e) |
 | Contact form | `clients/ContactForm.tsx` | FIX (aria-invalid/describedby; "Create anyway" double-click) |
 | Merge dialog | `clients/MergeDialog.tsx` | FIX (StrictMode double-create) |
-| Invoices list | `invoices/InvoicesList.tsx` | FIX (aria-pressed chips) |
+| Invoices list | `invoices/InvoicesList.tsx` | DONE (Phase 2d: chips aria-pressed) |
 | Invoice detail | `invoices/InvoiceDetail.tsx` | DONE |
 | Invoice form | `invoices/InvoiceForm.tsx` | FIX (HIGH edit-mode bug; no `<form>`) |
 | Projects | `projects/*` | FIX (ImportRepoDialog effect; ProjectRepos Unlink pending) |
@@ -149,9 +173,9 @@ badge dot register, kbd shadow token, loader-pulse animation all resolving from 
 | Settings | `settings/*` | FIX (Preferences loading/radio nav; dead class; no-catch) |
 | Custom fields | `customFields/*` | FIX (zero-option select; skeleton; fire-and-forget) |
 | Portal | `Portal.tsx` | FIX (role=alert on errors; redemption focus) |
-| Calendar | `Calendar.tsx` | FIX (grid keyboard nav) |
+| Calendar | `Calendar.tsx` | DONE (Phase 2d: grid roving-tabindex + arrow keys; chips aria-label) |
 | Inbox | `Inbox.tsx` | DONE |
-| Follow-ups | `FollowUps.tsx` | FIX (pending/disabled on Done/Dismiss) |
+| Follow-ups | `FollowUps.tsx` | DONE (Phase 2d: pending/disabled, spinner, error toast, Dismiss toasts) |
 | Loader / EmptyState / NotFound / ErrorBoundary | — | DONE (Phase 2a: EmptyState imports IconClients; loader-pulse signal-bar) |
 | App / main / lib / hooks | — | FIX (stale comment; formatMoney en-NG confirm) |
 
