@@ -312,9 +312,12 @@ export default function Demo() {
               </div>
             </div>
 
-            {/* Palette — real shared component, floats over the detail */}
+            {/* Palette — real shared component, floats over the detail. It's a
+                persistent part of the composition (not a focus-managed
+                overlay), so it renders non-modal: role="search" instead of
+                role="dialog", which would mislead screen readers. */}
             <div className="demo-palette" data-palette>
-              <PalettePanel groups={PALETTE_GROUPS} onSelect={onPaletteSelect} placeholder="Jump to…" />
+              <PalettePanel groups={PALETTE_GROUPS} onSelect={onPaletteSelect} placeholder="Jump to…" modal={false} />
             </div>
           </div>
         </div>

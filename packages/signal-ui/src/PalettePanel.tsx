@@ -24,13 +24,22 @@ export interface PalettePanelProps {
   groups: PaletteGroup[];
   onSelect?: (item: PaletteItem, group: PaletteGroup) => void;
   placeholder?: string;
+  /**
+   * Dialog semantics are only honest when the palette is mounted as an
+   * overlay with focus management (the product's open-state palette). When
+   * the palette is a persistent part of a composition (the marketing demo's
+   * scroll-constructed window), role="dialog" misleads screen readers — an
+   * always-present dialog that never traps focus. modal={false} renders it
+   * as a non-modal search surface instead.
+   */
+  modal?: boolean;
 }
 
 function normalize(s: string): string {
   return s.toLowerCase().replace(/\s+/g, " ");
 }
 
-export function PalettePanel({ groups, onSelect, placeholder = "Jump to…" }: PalettePanelProps) {
+export function PalettePanel({ groups, onSelect, placeholder = "Jump to…", modal = true }: PalettePanelProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,7 +82,7 @@ export function PalettePanel({ groups, onSelect, placeholder = "Jump to…" }: P
   let idx = -1;
 
   return (
-    <div className="palp" role="dialog" aria-label="Command palette">
+    <div className="palp" role={modal ? "dialog" : "search"} aria-label="Command palette">
       <div className="palp-input">
         <Icon name="search" label="" size={14} />
         <input
