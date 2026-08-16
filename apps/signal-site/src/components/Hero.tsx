@@ -256,6 +256,10 @@ export default function Hero({ progressRef }: { progressRef: React.RefObject<num
       if (mode === "simple") {
         const tl = gsap.timeline({ delay: 0.35, onComplete: playSignalPing });
         buildTl(tl);
+        // .is-full lifts the window's base `visibility: hidden` gate exactly
+        // as its fade-in begins (same position as the window tween) — the
+        // one-shot path has no scroll to drive a class toggle.
+        tl.add(() => win.classList.add("is-full"), 0.14);
         tl.play();
         return;
       }
@@ -271,6 +275,11 @@ export default function Hero({ progressRef }: { progressRef: React.RefObject<num
             if (import.meta.env.DEV) (window as unknown as { __heroProgress: number }).__heroProgress = self.progress;
             if (progressRef.current !== undefined) progressRef.current = self.progress;
             if (self.progress >= 0.999) playSignalPing();
+            // Lift the base `visibility: hidden` gate as the assembly begins
+            // (window tween starts at timeline 0.14 of ~1.28). Reversible:
+            // scrubbing back past the threshold drops the class and the
+            // window recedes with the chaos.
+            win.classList.toggle("is-full", self.progress >= 0.11);
           },
         },
       });
