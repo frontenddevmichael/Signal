@@ -3,6 +3,7 @@ import { useAction, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useToasts } from "../ui/useToasts";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * §17 reply box — replies send via gmail.send from the freelancer's own
@@ -31,7 +32,7 @@ export function ReplyBox({ contactId, to }: { contactId: Id<"contacts">; to: str
       setBody("");
       push({ message: "Reply sent from your Gmail" });
     } catch (err) {
-      push({ message: err instanceof Error ? err.message : "Reply failed to send." });
+      push({ message: friendlyError(err, "Reply failed to send.") });
     } finally {
       setPending(false);
     }

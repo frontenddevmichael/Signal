@@ -3,6 +3,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Modal } from "../ui/Modal";
+import { friendlyError } from "../../lib/errors";
 
 export function ProjectForm({
   open,
@@ -63,7 +64,7 @@ export function ProjectForm({
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save project.");
+      setError(friendlyError(err, "Could not save project."));
     } finally {
       setPending(false);
     }

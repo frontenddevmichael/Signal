@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { formatMoney, timeUntil } from "../../lib/format";
+import { friendlyError } from "../../lib/errors";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
@@ -51,7 +52,7 @@ export function InvoiceDetail() {
       push({ message: `${invoice.invoiceNumber} sent` });
       setSendOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Send failed.");
+      setError(friendlyError(e, "Could not send the invoice right now."));
     }
   };
 
@@ -62,7 +63,7 @@ export function InvoiceDetail() {
       push({ message: `${invoice.invoiceNumber} voided` });
       setVoidOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not void.");
+      setError(friendlyError(e, "Could not void the invoice right now."));
     }
   };
 

@@ -1,6 +1,7 @@
 import { action, internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { renderInvoicePdf } from "./invoicePdf";
 import type { PdfInvoice } from "./invoicePdf";
 import { writeAuditLog } from "./audit";
@@ -47,13 +48,13 @@ export const sendInvoice = action({
     const { invoice, contact } = data;
 
     // §21.9 — the action runs with the caller's auth; verify the invoice's
-    // owner matches before sending anything to the outside world.
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not signed in");
-    const ownerId = await ctx.runQuery(internal.email.userIdForEmail, {
-      email: identity.email ?? "",
-    });
-    if (!ownerId || ownerId !== contact.userId) throw new Error("Not found");
+    // owner matches before sending anything to the outside world. Resolve the
+    // user from the JWT subject (getAuthUserId), NOT identity.email — the
+    // Password provider's token carries no email claim, so an email lookup
+    // silently resolves to null and every send fails with "Not found".
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not signed in");
+    if (userId !== contact.userId) throw new Error("Not found");
 
     // Emails live in contact_emails (never on the contact row); send to the
     // primary one (§18).
@@ -142,25 +143,10 @@ export const contactEmails = internalQuery({
 export const gmailAvailable = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { connected: false };
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return { connected: false };
+    const user = await ctx.db.get(userId);
     return { connected: Boolean(user?.googleRefreshTokenEncrypted) };
-  },
-});
-
-/** Resolve a user's id from their verified email — used by the send action's ownership check. */
-export const userIdForEmail = internalQuery({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", email))
-      .first();
-    return user?._id ?? null;
   },
 });
 

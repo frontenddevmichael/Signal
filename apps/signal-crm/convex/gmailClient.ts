@@ -12,6 +12,7 @@
  */
 import { action, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { decryptToken } from "./tokenCrypto";
 import { writeAuditLog } from "./audit";
 
@@ -64,12 +65,9 @@ async function tokenExchange(body: Record<string, string>): Promise<{
 export const gmailStatus = query({
   args: {},
   handler: async (ctx): Promise<{ connected: boolean; configured: boolean }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { connected: false, configured: googleOAuthConfigured() };
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return { connected: false, configured: googleOAuthConfigured() };
+    const user = await ctx.db.get(userId);
     return {
       connected: Boolean(user?.googleRefreshTokenEncrypted),
       configured: googleOAuthConfigured(),
@@ -81,15 +79,12 @@ export const gmailStatus = query({
 export const gmailAuthorizeUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not signed in");
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not signed in");
     if (!googleOAuthConfigured()) {
       throw new Error("Google OAuth is not configured yet (GOOGLE_OAUTH_CLIENT_ID/SECRET).");
     }
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
     const state = crypto.randomUUID();
     await ctx.db.patch(user._id, { gmailOauthState: state });
@@ -107,12 +102,9 @@ export const gmailAuthorizeUrl = mutation({
 export const gmailDisconnect = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return;
+    const user = await ctx.db.get(userId);
     if (!user) return;
     await ctx.db.patch(user._id, {
       googleRefreshTokenEncrypted: undefined,
@@ -148,12 +140,9 @@ export const gmailAccessToken = action({
 export const userForSending = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+    const user = await ctx.db.get(userId);
     if (!user?.googleRefreshTokenEncrypted) return null;
     return { encrypted: user.googleRefreshTokenEncrypted, email: user.email };
   },

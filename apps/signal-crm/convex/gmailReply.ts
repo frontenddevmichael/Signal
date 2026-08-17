@@ -6,6 +6,7 @@
 import { action, internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import type { GenericId } from "convex/values";
 import { encodeRawMessage, sendGmailMessage } from "./gmailClient";
 import { composeRawMessage } from "./gmailSend";
@@ -45,11 +46,13 @@ export const sendReply = action({
   handler: async (ctx, args): Promise<{ sent: boolean; messageId: string; recorded: { messageId: string } }> => {
     // §17 audit fix: only the contact's owner may reply, and only to the
     // contact's OWN addresses — a signed-in caller can no longer forge a
-    // "you replied" timeline entry onto a victim's contact.
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity?.email) throw new Error("Not signed in");
+    // "you replied" timeline entry onto a victim's contact. Ownership is
+    // resolved from the JWT subject (getAuthUserId) — identity.email carries
+    // no claim under the Password provider.
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not signed in");
     const user = await ctx.runQuery(internal.gmailReply.ownerForContact, { contactId: args.contactId });
-    if (!user || user.email !== identity.email) throw new Error("Not found");
+    if (!user || user._id !== userId) throw new Error("Not found");
 
     const emails = await ctx.runQuery(internal.gmailReply.contactEmails, { contactId: args.contactId });
     const allowed = emails.map((e) => e.email.toLowerCase());

@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
 import { EmptyState } from "../EmptyState";
+import { friendlyError } from "../../lib/errors";
 import { IconPlus } from "../Icons";
 import { SettingsSection } from "./SettingsSection";
 
@@ -53,7 +54,7 @@ export function CustomFieldsSection() {
       setOptionsText("");
       push({ message: `Added “${label}”` });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add field.");
+      setError(friendlyError(err, "Could not add field."));
     } finally {
       setPending(false);
     }

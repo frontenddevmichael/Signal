@@ -3,6 +3,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Modal } from "../ui/Modal";
+import { friendlyError } from "../../lib/errors";
 import { MergeDialog } from "./MergeDialog";
 
 interface EmailRow { email: string; isPrimary: boolean }
@@ -113,7 +114,7 @@ export function ContactForm({
       onClose();
       onSaved?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save contact.");
+      setError(friendlyError(err, "Could not save contact."));
     } finally {
       setPending(false);
     }

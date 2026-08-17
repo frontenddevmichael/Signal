@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * §18 notes are rich-text. TipTap (headless, React-native) with StarterKit for
@@ -45,7 +46,7 @@ export function NoteComposer({
       editor?.commands.clearContent();
       onSaved?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save note.");
+      setError(friendlyError(e, "Could not save note."));
     } finally {
       setPending(false);
     }

@@ -44,11 +44,14 @@ export async function handleGmailCallback(ctx: {
     // we can't attribute the token to a user. Redirect rather than leak.
     return fail("not_signed_in");
   }
-  if (!identity?.email) return fail("not_signed_in");
+  // The Password provider's JWT carries no email claim — the user is identified
+  // by the subject ("userId|sessionId"). Resolve the userId from it directly.
+  const userId = identity?.subject?.split("|")[0];
+  if (!userId) return fail("not_signed_in");
 
   // CSRF: the state must match the one we stored for THIS user.
   const user = await ctx.runMutation(internal.gmailConnect.verifyState, {
-    email: identity.email,
+    userId,
     state,
   });
   if (!user) return fail("state_mismatch");
@@ -78,7 +81,7 @@ export async function handleGmailCallback(ctx: {
   await ctx.runMutation(internal.gmailConnect.storeToken, {
     userId: user._id,
     encrypted,
-    email: identity.email,
+    email: user.email ?? "",
   });
 
   return Response.redirect(`${appUrl()}/settings?gmail=connected`, 302);
@@ -90,12 +93,9 @@ export const gmailOauthCallback = httpAction(async (ctx, request) => {
 
 /** CSRF check half of the callback: does this user hold this state? */
 export const verifyState = internalMutation({
-  args: { email: v.string(), state: v.string() },
-  handler: async (ctx, { email, state }) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", email))
-      .first();
+  args: { userId: v.id("users"), state: v.string() },
+  handler: async (ctx, { userId, state }) => {
+    const user = await ctx.db.get(userId);
     if (!user || user.gmailOauthState !== state) return null;
     return { _id: user._id, email: user.email };
   },

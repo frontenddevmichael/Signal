@@ -5,6 +5,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
 import { getDeviceId } from "../../lib/device";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * §20.13/§20.12/§21.7 — the security/ownership settings: session revocation,
@@ -54,7 +55,7 @@ export function SecuritySettings() {
         window.location.href = "/";
       }
     } catch (err) {
-      push({ message: err instanceof Error ? err.message : "Deletion failed." });
+      push({ message: friendlyError(err, "Deletion failed.") });
       setDeleteOpen(false);
     }
   };

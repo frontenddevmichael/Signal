@@ -5,6 +5,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { useToasts } from "../ui/useToasts";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { formatDateTime } from "../../lib/format";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * §6 meetings — local meetings attached to a client (calendarEvents rows with a
@@ -53,7 +54,7 @@ export function MeetingsPanel({ contactId }: { contactId: Id<"contacts"> }) {
       setMeetLink("");
       push({ message: "Meeting added" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add meeting.");
+      setError(friendlyError(e, "Could not add meeting."));
     } finally {
       setPending(false);
     }

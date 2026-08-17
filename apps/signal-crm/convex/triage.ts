@@ -13,6 +13,7 @@
  */
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { ruleBasedTriage, type TriageVerdict } from "./gmailLogic";
 
 /** §20.14 daily cap — kept low enough to be free-tier safe on both providers. */
@@ -51,12 +52,11 @@ export function triageWindowStart(now: number): number {
 export const tryConsumeTriageCap = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity?.email) return { allowed: false, remaining: 0 };
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    // Resolve from the JWT subject, not identity.email — the Password provider
+    // carries no email claim, so an email lookup would silently no-op.
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return { allowed: false, remaining: 0 };
+    const user = await ctx.db.get(userId);
     if (!user) return { allowed: false, remaining: 0 };
     const now = Date.now();
     const windowStart = triageWindowStart(now);
@@ -85,12 +85,9 @@ export const tryConsumeTriageCap = mutation({
 export const triageEnabled = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { enabled: false, configured: llmTriageConfigured() };
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return { enabled: false, configured: llmTriageConfigured() };
+    const user = await ctx.db.get(userId);
     return {
       enabled: user?.aiTriageEnabled !== false,
       configured: llmTriageConfigured(),
@@ -102,12 +99,9 @@ export const triageEnabled = query({
 export const setTriageEnabled = mutation({
   args: { enabled: v.boolean() },
   handler: async (ctx, { enabled }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email ?? ""))
-      .first();
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return;
+    const user = await ctx.db.get(userId);
     if (!user) return;
     await ctx.db.patch(user._id, { aiTriageEnabled: enabled });
   },

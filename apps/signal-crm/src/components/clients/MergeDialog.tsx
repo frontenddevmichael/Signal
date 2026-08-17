@@ -6,6 +6,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { buildMergePlan } from "../../../convex/mergeLogic";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
+import { friendlyError } from "../../lib/errors";
 
 type ContactPayload = {
   name: string;
@@ -78,7 +79,7 @@ export function MergeDialog({
         const res = await create({ ...payload, force: true });
         setCreatedOtherId(res.created);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not create contact.");
+        setError(friendlyError(e, "Could not create contact."));
       } finally {
         setCreating(false);
       }
@@ -167,7 +168,7 @@ export function MergeDialog({
       onClose();
       navigate(`/clients/${survivorId}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Merge failed.");
+      setError(friendlyError(e, "Merge failed."));
     } finally {
       setPending(false);
     }

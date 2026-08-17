@@ -15,6 +15,15 @@ html {
   scroll-padding-top: 72px;
 }
 
+/* Site-only token — the white primary button's hover step. The product's
+   --beacon-strong (#d4d6d9) is a different step of its ramp; this is the
+   site's own white-on-dark hover, deliberately NOT added to the shared
+   ladder (the splice contract requires shared tokens to exist in the
+   product's :root — this one is site-specific). */
+:root {
+  --beacon-contrast-hover: #e8e9ea;
+}
+
 html.lenis,
 html.lenis body {
   height: auto;

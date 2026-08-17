@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
+import { friendlyError } from "../../lib/errors";
 
 interface PickerRepo {
   id: number;
@@ -56,7 +57,7 @@ export function ImportRepoDialog({
       push({ message: `${fullName} linked — backfilling history` });
       onClose();
     } catch (e) {
-      push({ message: e instanceof Error ? e.message : "Could not import repo." });
+      push({ message: friendlyError(e, "Could not import repo.") });
       setPendingId(null);
     }
   };

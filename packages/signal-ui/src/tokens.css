@@ -88,11 +88,6 @@
   --canvas: var(--surface-0);
   --text-body: var(--text-secondary);
   --mark: var(--text-primary); /* signal-bar stroke */
-  /* The white primary button's hover step. The product's --beacon-strong
-     (#d4d6d9) is a different step of its ramp — this is the site's own
-     white-on-dark hover, so it gets its own token rather than forking an
-     existing one. */
-  --beacon-contrast-hover: #e8e9ea;
 }
 
 @media (prefers-reduced-motion: reduce) {

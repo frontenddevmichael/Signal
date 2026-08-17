@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { Modal } from "../ui/Modal";
 import { useToasts } from "../ui/useToasts";
 import { formatMoney } from "../../lib/format";
+import { friendlyError } from "../../lib/errors";
 
 interface PickedItem {
   description: string;
@@ -137,7 +138,7 @@ export function InvoiceForm({
       }
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save invoice.");
+      setError(friendlyError(e, "Could not save invoice."));
     } finally {
       setPending(false);
     }

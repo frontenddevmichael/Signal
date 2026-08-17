@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useToasts } from "../ui/useToasts";
 import { IconGoogle } from "../Icons";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * §17 Gmail connection — settings entry point, one connect per account.
@@ -31,7 +32,7 @@ export function GmailConnect() {
       const { url } = await authorize();
       window.location.href = url;
     } catch (err) {
-      push({ message: err instanceof Error ? err.message : "Could not start Google sign-in." });
+      push({ message: friendlyError(err, "Could not start Google sign-in.") });
       setConnecting(false);
     }
   };

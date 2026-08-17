@@ -2216,6 +2216,27 @@ select:disabled {
   }
 }
 
+/* Short viewports (landscape phones, small laptop windows): the tabbar is
+   fixed and overlays the bottom 44-64px, so a full-height empty-state
+   composition (72px padding + tile + headline + body + action) lands its
+   body copy and action button BEHIND the bar. Compact the composition so
+   the whole thing clears the bar — the absence-of-data moment stays intact
+   instead of reading as clipped content (§3.5). */
+@media (max-height: 640px) {
+  .empty-state {
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+  .empty-tile {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 8px;
+  }
+  .empty-action {
+    margin-top: 10px;
+  }
+}
+
 /* ============================================================
    Phase 1 — CRM loop styles (§13/§14/§22.4–22.15 patterns)
    ============================================================ */

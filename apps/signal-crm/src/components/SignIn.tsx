@@ -3,6 +3,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { IconGoogle } from "./Icons";
+import { friendlyError } from "../lib/errors";
 
 /**
  * §20.1 sign-in. Email/password always; Google shown only when the server has
@@ -47,7 +48,7 @@ export function SignIn() {
     try {
       await signIn("google");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed.");
+      setError(friendlyError(err, "Google sign-in failed."));
       setPending(null);
     }
   };

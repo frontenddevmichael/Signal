@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
+import { friendlyError } from "../../lib/errors";
 
 /**
  * §5.1 confirm-before-destructive — an explicit step that NAMES what's about
@@ -37,7 +38,7 @@ export function ConfirmDialog({
       await onConfirm();
       onClose();
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : "Something went wrong. Try again.");
+      setError(friendlyError(e, "Something went wrong. Try again."));
       if (!(e instanceof Error) || !e.message) {
         // The bare-throw path loses its shape, but the inline message
         // already tells the user what to do next.
