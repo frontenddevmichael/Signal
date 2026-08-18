@@ -247,11 +247,11 @@ export default function Hero({ progressRef }: { progressRef: React.RefObject<num
         for (const t of TUCKS) {
           const el = section.querySelector<HTMLElement>(`[data-piece="${t.kind}"]`);
           if (!el) continue;
-          // Fades to a ghost, then goes fully hidden — no clutter residue
-          // behind the assembled window (visibility flips at tween end).
+          // Soft fade-out: scale down gently while opacity fades all the way to 0,
+          // then visibility hidden to prevent clutter residue behind the assembled window.
           tl.to(
             el,
-            { x: 0, y: 0, rotation: 0, scale: 0.62, opacity: 0.08, visibility: "hidden", ease: "power2.in", duration: 0.5 },
+            { x: 0, y: 0, rotation: 0, scale: 0.58, opacity: 0, visibility: "hidden", ease: "power1.in", duration: 0.7 },
             0.12 + (hash(t.kind) % 10) * 0.018
           );
         }
