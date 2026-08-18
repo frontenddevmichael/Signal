@@ -9,5 +9,11 @@
     "typecheck": "pnpm --filter signal-crm exec tsc -b --noEmit",
     "site:dev": "pnpm --filter signal-site dev",
     "site:build": "pnpm --filter signal-site build"
+  },
+  "dependencies": {
+    "convex": "^1.44.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.0": true
   }
 }
