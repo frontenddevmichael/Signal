@@ -21,7 +21,7 @@ export function DocumentsPanel({ contactId }: { contactId: string }) {
   const undoRemove = useMutation(api.documents.undoRemove);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [preview, setPreview] = useState<(typeof documents)[number] | null>(null);
+  const [preview, setPreview] = useState<NonNullable<typeof documents>[number] | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const doDelete = async (doc: NonNullable<typeof documents>[number]) => {
@@ -103,7 +103,7 @@ export function DocumentsPanel({ contactId }: { contactId: string }) {
         {preview && (
           <div className="doc-preview">
             {preview.content
-              ? preview.content.split("\n").map((line, i) =>
+              ? preview.content.split("\n").map((line: string, i: number) =>
                   line ? <p key={i}>{line}</p> : <div key={i} aria-hidden="true" style={{ height: 10 }} />
                 )
               : <p className="muted">This document has no preview (linked from an external provider).</p>}

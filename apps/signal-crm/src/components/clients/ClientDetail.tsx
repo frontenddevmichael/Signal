@@ -22,7 +22,7 @@ import { ReplyBox } from "../gmail/ReplyBox";
 import { MeetingsPanel } from "../meetings/MeetingsPanel";
 import { DocumentsPanel } from "../documents/DocumentsPanel";
 import { PortalLinkButton } from "../portal/PortalLinkButton";
-import { IconMoney, IconPlus, IconRepo, IconSearch } from "../Icons";
+import { IconMoney, IconPlus, IconSearch } from "../Icons";
 
 type Tab = "timeline" | "projects" | "repos" | "docs" | "financials";
 

@@ -44,7 +44,7 @@ export function NewDocumentModal({
     if (!contact) return; // wait for the record
     seeded.current = true;
     const seed: DocValues = {};
-    if (contact.name) seed.clientName = contact.name;
+    if (contact.contact.name) seed.clientName = contact.contact.name;
     if (projects[0]) seed.projectName = projects[0].name;
     seed.currency = "USD";
     setValues((v) => ({ ...seed, ...v }));
