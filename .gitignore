@@ -26,6 +26,7 @@ seed-jwt.tmp
 # Local Convex dev-server redirect logs + verification screenshots dir (regenerated on demand)
 .convex-dev-*.txt
 walk-shots/
+package-lock.json
 
 # Editor directories and files
 .vscode/*
