@@ -790,7 +790,7 @@ a {
     box-shadow var(--duration-fast) var(--ease-signal);
 }
 .feat-panel[data-received="true"] {
-  border:2px dashed var(--status-positive-hue);
+
 }
 /* Only the GitHub panel needs its own clipping opened up — it's the one
    panel whose child (the traveler) has to visibly leave its box. Every

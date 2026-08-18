@@ -10,7 +10,15 @@ import "@fontsource-variable/geist-mono";
 import "./index.css";
 import App from "./App";
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string, {
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+if (!convexUrl) {
+  throw new Error(
+    "Missing VITE_CONVEX_URL. " +
+    "Set it in your .env.local for local dev, or in Vercel → Settings → Environment Variables for production. " +
+    "See https://docs.convex.dev/production/hosting/",
+  );
+}
+const convex = new ConvexReactClient(convexUrl, {
   unsavedChangesWarning: false,
 });
 
