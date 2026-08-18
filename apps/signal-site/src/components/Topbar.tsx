@@ -103,7 +103,8 @@ export default function Topbar() {
 
         {hasAppUrl ? (
           <a className="btn btn-primary" href={APP_URL}>
-            Open Signal
+            <span className="btn-cta-label">Sign in</span>
+            <Icon name="arrow-right" label="" size={14} />
           </a>
         ) : (
           <a className="btn btn-primary" href="#demo">

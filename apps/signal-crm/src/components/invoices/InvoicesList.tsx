@@ -51,10 +51,16 @@ export function InvoicesList() {
   const invoices = useQuery(api.invoices.list);
   const [showCreate, setShowCreate] = useState(false);
 
-  // §2.4 — the command palette opens this modal via event bus.
+  // §2.4 — the command palette opens this modal via event bus; the client
+  // detail financials empty state hands off through sessionStorage (its
+  // dispatch could fire before this list mounts).
   useEffect(() => {
     const onNew = () => setShowCreate(true);
     window.addEventListener(NEW_INVOICE_EVENT, onNew);
+    if (sessionStorage.getItem("signal:new-invoice") === "1") {
+      sessionStorage.removeItem("signal:new-invoice");
+      setShowCreate(true);
+    }
     return () => window.removeEventListener(NEW_INVOICE_EVENT, onNew);
   }, []);
   const [query, setQuery] = useState("");

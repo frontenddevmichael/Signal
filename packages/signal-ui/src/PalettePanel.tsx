@@ -42,6 +42,13 @@ function normalize(s: string): string {
 export function PalettePanel({ groups, onSelect, placeholder = "Jump to…", modal = true }: PalettePanelProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  // While the user is driving the list from the keyboard (typing or
+  // arrowing), a mouse that happens to be parked over a row must not
+  // override the keyboard's selection — the classic combobox hijack where
+  // the active row snaps to wherever the cursor sits. Hover takes over
+  // again the moment the user actually clicks the list (or refocuses the
+  // input for a fresh search).
+  const [kbSession, setKbSession] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +84,9 @@ export function PalettePanel({ groups, onSelect, placeholder = "Jump to…", mod
       e.preventDefault();
       setQuery("");
     }
+    // Any keyboard navigation enters the keyboard session — hover is
+    // suspended until the user clicks the list.
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") setKbSession(true);
   };
 
   let idx = -1;
@@ -94,8 +104,17 @@ export function PalettePanel({ groups, onSelect, placeholder = "Jump to…", mod
           onChange={(e) => {
             setQuery(e.target.value);
             setActive(0);
+            setKbSession(true);
           }}
           onKeyDown={onKey}
+          onFocus={() => {
+            // A fresh search starts keyboard-driven: active resets to the
+            // first row and hover is suspended — a mouse parked over the
+            // list (from a previous interaction) must not claim the row
+            // under it before the first keystroke lands.
+            setActive(0);
+            setKbSession(true);
+          }}
         />
         <kbd className="num">⌘K</kbd>
       </div>
@@ -112,8 +131,14 @@ export function PalettePanel({ groups, onSelect, placeholder = "Jump to…", mod
                   key={item.id}
                   type="button"
                   className={`palp-row${i === active ? " is-active" : ""}`}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => onSelect?.(item, g)}
+                  onMouseEnter={() => {
+                    if (kbSession) return;
+                    setActive(i);
+                  }}
+                  onClick={() => {
+                    setKbSession(false);
+                    onSelect?.(item, g);
+                  }}
                 >
                   {item.icon ? (
                     <Icon name={item.icon} label="" size={14} />

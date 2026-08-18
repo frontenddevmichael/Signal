@@ -1807,6 +1807,14 @@ select:disabled {
 
 .cal-grid {
   display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+/* ARIA grid contract — cells live inside role=row wrappers; the row is the
+   column track (7 cells), the grid stacks rows. */
+.cal-row {
+  display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
 }
@@ -1824,7 +1832,15 @@ select:disabled {
 }
 
 .cal-cell.out {
-  opacity: 0.45;
+  /* Contrast-safe mute: the day numeral drops to --text-tertiary (passes
+     4.5:1 on every resting surface in both modes) instead of dimming the
+     whole cell with opacity — opacity 0.45 took the day text below AA. */
+  background: transparent;
+  border-color: transparent;
+}
+
+.cal-cell.out .cal-daynum {
+  color: var(--text-tertiary);
 }
 
 .cal-cell.today {
@@ -1862,6 +1878,10 @@ select:disabled {
   text-align: left;
   cursor: pointer;
   min-width: 0;
+  /* §5.8 / WCAG 2.2 target-size — the 24px minimum hit area for the
+     chip's calendar navigation (the visual stays compact, the target
+     doesn't). */
+  min-height: 24px;
   transition: background var(--duration-instant) var(--ease-signal),
     color var(--duration-instant) var(--ease-signal);
 }
@@ -3883,4 +3903,101 @@ select:disabled {
     position: absolute;
     inset: -8px;
   }
+}
+
+/* ============================================================
+   §documents — generated proposals/contracts
+   Template picker cards, the rendered-body preview, and the
+   document list on the client detail Docs tab. All from tokens:
+   surface ladder, radius scale, mono for numerals only (bodies
+   are prose — Geist Sans). The preview is a quiet reading
+   surface, not a form: no borders competing with the text.
+   ============================================================ */
+.doc-template-row {
+  display: flex;
+  gap: 10px;
+}
+.doc-template-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease);
+}
+.doc-template-card:hover {
+  background: var(--surface-2);
+}
+.doc-template-card.is-active {
+  border-color: var(--beacon);
+  background: var(--surface-2);
+}
+.doc-template-card strong {
+  font-weight: 510;
+  font-size: 14px;
+}
+.doc-template-card .muted {
+  font-size: 12px;
+}
+
+.doc-preview {
+  margin-top: 16px;
+  padding: 18px 20px;
+  background: var(--surface-1);
+  border-radius: var(--radius-card);
+  max-height: 320px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.doc-preview h4 {
+  font-weight: 510;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+.doc-preview p {
+  margin: 0 0 8px;
+}
+
+.document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.document-open {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-primary);
+}
+.document-open strong {
+  font-weight: 510;
+}
+.document-open .muted {
+  font-size: 12px;
+}
+.document-open:hover strong {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

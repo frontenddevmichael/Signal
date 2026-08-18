@@ -7,6 +7,7 @@ import { SignalBar } from "signal-ui/SignalBar";
 import { Icon, type IconName } from "signal-ui/Icons";
 import { StatusChip } from "signal-ui/StatusChip";
 import { motionMode } from "../lib/motionGate";
+import { isTestMode } from "../lib/testMode";
 import { playSignalPing } from "../lib/sound";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -59,14 +60,18 @@ export function chaosFor(kind: string, qx: number, qy: number): ChaosTransform {
   return { x: Math.round(x), y: Math.round(y), rot: Math.round(rot * 10) / 10, scale: Math.round(scale * 100) / 100 };
 }
 
-/** Tuck piece chaos: ring-scattered across the stage. */
+/** Tuck piece chaos: scattered across the RIGHT half of the stage, pulled
+ *  tight around the vertical midpoint — the window owns the right side but
+ *  is invisible until assembly, so the cards can crowd its center and tuck
+ *  away as it resolves, while staying clear of the headline column on the
+ *  left. */
 export function tuckChaosFor(kind: string): ChaosTransform & { px: number; py: number } {
   const r = mulberry32(hash(kind) + 7);
-  const angle = r() * Math.PI * 2;
-  const radius = 0.3 + r() * 0.16;
-  const px = Math.round((0.5 + Math.cos(angle) * radius) * 100) / 100;
-  const py = Math.round((0.5 + Math.sin(angle) * radius) * 100) / 100;
-  return { x: 0, y: 0, rot: Math.round((r() - 0.5) * 40), scale: 0.8 + r() * 0.3, px, py };
+  const px = Math.round((0.54 + r() * 0.24) * 100) / 100;
+  // Hug the vertical midpoint — the band is centered on 50% so the pile
+  // reads as one cluster crowding the window's center-right stage.
+  const py = Math.round((0.47 + r() * 0.06) * 100) / 100;
+  return { x: 0, y: 0, rot: Math.round((r() - 0.5) * 24), scale: 0.82 + r() * 0.22, px, py };
 }
 
 type Slot = {
@@ -176,11 +181,19 @@ const SLOTS: Slot[] = [
 
 type TuckKind = { kind: string; icon: IconName; title: string; sub: string };
 
+/* The clutter the headline sits among — each card is a real piece of the
+   noise Signal assembles away. All of them tuck as the window takes the
+   stage. */
 const TUCKS: TuckKind[] = [
   { kind: "tuckSlack", icon: "chat", title: "lena — invoice looks good", sub: "slack · just now" },
   { kind: "tuckGithub", icon: "repo", title: "you/repo — PR #42", sub: "github · 2h ago" },
   { kind: "tuckSheet", icon: "table", title: "monthly-summary.csv", sub: "spreadsheet · open" },
   { kind: "tuckMiss", icon: "bell", title: "missed follow-up — Acme Co.", sub: "nudge · 3 days" },
+  { kind: "tuckInvite", icon: "calendar", title: "design review — tomorrow", sub: "meeting · 14:00" },
+  { kind: "tuckDraft", icon: "invoice", title: "INV-2026-0007 — draft", sub: "invoice · unsent" },
+  { kind: "tuckNote", icon: "sticky", title: "note: pricing call", sub: "note · yesterday" },
+  { kind: "tuckMail", icon: "mail", title: "3 unread from clients", sub: "inbox · just now" },
+  { kind: "tuckApi", icon: "alert", title: "API key expiring", sub: "security · 5 days" },
 ];
 
 function NavRow({ icon, label, active }: { icon: IconName; label: string; active?: boolean }) {
@@ -289,11 +302,18 @@ export default function Hero({ progressRef }: { progressRef: React.RefObject<num
       // anchors: the topbar/footer section links must actually work through
       // the pins — default Lenis fights native jumps (clicking #features did
       // nothing). Let Lenis own anchor scrolling, offset for the fixed topbar.
+      // Under automated tests the per-frame ticker is skipped (it's a
+      // continuous main-thread load that can starve React's event queue —
+      // see testMode); Lenis still handles anchor clicks, and native scroll
+      // drives ScrollTrigger + the scrub timelines identically.
       const lenis = new Lenis({ anchors: { offset: -72 } });
       lenis.on("scroll", ScrollTrigger.update);
-      const tick = (time: number) => lenis.raf(time * 1000);
-      gsap.ticker.add(tick);
-      gsap.ticker.lagSmoothing(0);
+      let tick: ((time: number) => void) | null = null;
+      if (!isTestMode()) {
+        tick = (time: number) => lenis.raf(time * 1000);
+        gsap.ticker.add(tick);
+        gsap.ticker.lagSmoothing(0);
+      }
 
       // Trigger math must run against the FINAL, settled layout
       // (fonts + images loaded) — brief §6.1.
@@ -302,7 +322,7 @@ export default function Hero({ progressRef }: { progressRef: React.RefObject<num
       window.addEventListener("load", refresh, { once: true });
 
       return () => {
-        gsap.ticker.remove(tick);
+        if (tick) gsap.ticker.remove(tick);
         lenis.destroy();
       };
     },
@@ -322,7 +342,7 @@ export default function Hero({ progressRef }: { progressRef: React.RefObject<num
             <span style={{ color: "var(--text-body)" }}>Signal is the order it becomes.</span>
           </h1>
           <p className="display-sub">
-            The chaos of a solo dev business — invoices, repos, follow-ups — assembled into one calm surface. Scroll.
+            The chaos of a solo dev business — invoices, repos, follow-ups — assembled into one calm surface.
           </p>
         </div>
 

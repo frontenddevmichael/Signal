@@ -20,7 +20,7 @@ import { deriveInvoiceStatus } from "./invoiceLogic";
  *   names.
  * - Tables the design's file list omitted but decision A ("full dataset")
  *   requires: contactEmails, contactPhones, documents, followUpReminders,
- *   portalTokens, invoiceCounters, auditLog, contactUndo, gmailFilterSetup,
+ *   portalTokens, invoiceCounters, auditLog, contactUndo, documentUndo, gmailFilterSetup,
  *   repoActivity. All exported.
  * - apiKeys carries KEY METADATA ONLY (label/created/lastUsed) — keys are
  *   SHA-256 at rest and can never be reconstructed; the manifest states this.
@@ -72,6 +72,7 @@ export const all = query({
       invoiceCounters,
       auditLog,
       contactUndo,
+      documentUndo,
       allFilterSetups,
     ] = await Promise.all([
       contactQ(ctx, "contactEmails", contactIds),
@@ -95,6 +96,7 @@ export const all = query({
       ctx.db.query("invoiceCounters").collect(),
       ctx.db.query("auditLog").withIndex("by_user", (q) => q.eq("userId", userId)).collect(),
       ctx.db.query("contactUndo").withIndex("by_user", (q) => q.eq("userId", userId)).collect(),
+      ctx.db.query("documentUndo").withIndex("by_user", (q) => q.eq("userId", userId)).collect(),
       ctx.db.query("gmailFilterSetup").collect(),
     ]);
 
@@ -175,6 +177,7 @@ export const all = query({
       invoiceCounters: invoiceCounters.filter((c) => c.userId === userId),
       auditLog,
       contactUndo,
+      documentUndo,
       gmailFilterSetup: ownedFilterSetups,
     };
   },

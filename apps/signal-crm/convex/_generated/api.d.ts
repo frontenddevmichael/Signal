@@ -18,6 +18,7 @@ import type * as calendar from "../calendar.js";
 import type * as calendarLogic from "../calendarLogic.js";
 import type * as contacts from "../contacts.js";
 import type * as customFields from "../customFields.js";
+import type * as documents from "../documents.js";
 import type * as email from "../email.js";
 import type * as exportData from "../exportData.js";
 import type * as github from "../github.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   calendarLogic: typeof calendarLogic;
   contacts: typeof contacts;
   customFields: typeof customFields;
+  documents: typeof documents;
   email: typeof email;
   exportData: typeof exportData;
   github: typeof github;

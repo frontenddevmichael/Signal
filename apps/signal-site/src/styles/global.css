@@ -71,8 +71,8 @@ a {
 
 /* ---- Type scale ------------------------------------------- */
 .display {
-  font-size: clamp(40px, 7vw, 76px);
-  line-height: 1.04;
+  font-size: clamp(30px, 4.4vw, 58px);
+  line-height: 1.08;
   letter-spacing: var(--tracking-display);
   font-weight: 590;
   margin: 0;
@@ -82,7 +82,7 @@ a {
   line-height: 1.5;
   color: var(--text-body);
   letter-spacing: var(--tracking-tight);
-  font-weight: 400;
+  font-weight: 600;
   margin: 0;
 }
 .section-title {
@@ -269,7 +269,8 @@ a {
   font-size: 13px;
   padding: 6px 10px;
   border-radius: var(--radius-xs);
-  transition: color var(--duration-fast) var(--ease-signal),
+  transition:
+    color var(--duration-fast) var(--ease-signal),
     background var(--duration-fast) var(--ease-signal);
 }
 .topbar-nav a:hover {
@@ -299,6 +300,7 @@ a {
   min-height: 300vh; /* scroll runway for the scrub */
   position: relative;
 }
+
 .hero-stage {
   position: sticky;
   top: 0;
@@ -308,17 +310,20 @@ a {
 }
 .hero-intro {
   position: absolute;
-  left: 50%;
-  top: 46%;
-  transform: translate(-50%, -50%);
-  text-align: center;
+  left: clamp(24px, 6vw, 96px);
+  top: calc(50% + 28px); /* clear the fixed 56px topbar, then center */
+  transform: translateY(-50%);
+  text-align: left;
   z-index: 2;
   pointer-events: none;
-  width: min(92vw, 760px);
+  width: min(40vw, 500px);
 }
 .hero-intro h1 {
   margin: var(--space-4) 0 var(--space-3);
   text-wrap: balance;
+}
+.hero-intro .display-sub {
+  max-width: 420px;
 }
 /* The settled payoff line — resolves as the assembly completes. */
 .hero-caption {
@@ -372,21 +377,13 @@ a {
 
 /* The window the chaos resolves into — the settled product UI. */
 .hero-window {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(94vw, 1040px);
-  height: min(70vh, 620px);
-  transform: translate(-50%, -50%);
+  position: relative;
+  width: 100%;
+  height: 100%;
   z-index: 1;
   visibility: hidden; /* shown once assembled (opacity handled by scrub) */
   opacity: 0;
   pointer-events: none;
-}
-.hero-window.is-full {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
 }
 
 /* Chaos pieces — absolutely positioned within the stage. */
@@ -394,6 +391,7 @@ a {
   position: absolute;
   z-index: 1;
   will-change: transform, opacity;
+
 }
 /* Scattered chaos state */
 .piece.chao {
@@ -406,23 +404,35 @@ a {
 }
 
 /* ---- Hero window + assembled product pieces ---------------- */
+/* The split: headline + scattered clutter own the LEFT half, the product
+   window owns the RIGHT. The wrap is the window's layout box; GSAP only
+   animates the inner chrome (transform/opacity), so nothing fights this. */
 .hero-window-wrap {
   position: absolute;
-  left: 50%;
+  right: clamp(20px, 4vw, 64px);
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
+  width: min(48vw, 600px);
+  height: min(68vh, 600px);
   z-index: 1;
   pointer-events: none;
+
 }
 .hero-window {
   position: relative;
-  width: min(94vw, 1040px);
-  height: min(70vh, 620px);
+  width: 100%;
+  height: 100%;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--elev-3);
   will-change: transform, opacity;
+   
+}
+.hero-window.is-full {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 .hero-window::after {
   content: "";
@@ -646,7 +656,7 @@ a {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 1rem;
   max-width: 220px;
   padding: 10px 12px;
   background: var(--surface-2);
@@ -669,9 +679,25 @@ a {
 }
 
 @media (max-width: 680px) {
-  .hero-window {
-    width: 96vw;
-    height: 74vh;
+  /* Restack: headline on top, window below — no side-by-side at phone
+     widths. The intro gets its centered, tighter composition back. */
+  .hero-intro {
+    left: 50%;
+    top: 22%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: min(92vw, 460px);
+  }
+  .hero-intro .display-sub {
+    max-width: none;
+  }
+  .hero-window-wrap {
+    left: 50%;
+    right: auto;
+    top: 70%;
+    transform: translate(-50%, -50%);
+    width: min(94vw, 560px);
+    height: min(56vh, 500px);
   }
   [data-piece="navClients"],
   [data-piece="navInvoices"],
@@ -680,14 +706,16 @@ a {
   [data-piece="palette"] {
     display: none;
   }
+  /* Clutter cards are a desktop flourish — on phones they'd sit over the
+     restacked headline. The assembled window tells the story alone. */
+  [data-piece^="tuck"] {
+    display: none;
+  }
   .ui-head-chips {
     display: none;
   }
   .ui-stat-num {
     font-size: 14px;
-  }
-  .hero-intro {
-    top: 40%;
   }
   .hero-caption {
     display: none;
@@ -728,23 +756,47 @@ a {
   margin-bottom: var(--space-3);
 }
 
+/* The arena hosts the panel grid AND the signal layer as siblings, so
+   the traveling packet and its wires are never clipped by any single
+   panel's own overflow:hidden (previously the traveler lived inside the
+   GitHub panel and was invisible once it crossed that panel's edge). */
+.feat-arena {
+  position: relative;
+  width: min(100%, 1040px);
+  
+}
+
 .feat-panels {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-5);
-  width: min(100%, 1040px);
+  width: 100%;
+  position: relative;
+  
 }
 .feat-panel {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--elev-1);
   overflow: hidden;
+  padding: var(--space-2);
+  /* The receiving flash — a card visibly reacts the instant the signal
+     layer marks it as fed, not on a separately-tuned timer. */
+  transition:
+    border-color var(--duration-fast) var(--ease-signal),
+    box-shadow var(--duration-fast) var(--ease-signal);
 }
+.feat-panel[data-received="true"] {
+  border:2px dashed var(--status-positive-hue);
+}
+/* Only the GitHub panel needs its own clipping opened up — it's the one
+   panel whose child (the traveler) has to visibly leave its box. Every
+   other panel keeps overflow:hidden for its rounded corners. */
 .feat-panel[data-feat="gh"] {
-  /* its subtree (the traveler) flies over the sibling panels */
+  overflow: visible;
   z-index: 2;
 }
 .feat-panel-head {
@@ -752,7 +804,7 @@ a {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border-subtle);
+
   font-size: 12px;
   font-weight: 590;
   letter-spacing: var(--tracking-tight);
@@ -827,15 +879,48 @@ a {
   inset: 0;
 }
 
-/* The traveler — the ONE element that becomes PR → event → line. */
-.feat-traveler {
+/* ---- The signal layer --------------------------------------
+   Sits ABOVE the panel grid as a sibling (not a descendant of any one
+   panel), so the traveling packet is never clipped by a panel's own
+   overflow:hidden. It owns the traveler and the arrival pulses — no
+   connector lines, the packet reads only at the stations. */
+.feat-signal-layer {
   position: absolute;
   inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+/* The pulse that lands on a panel the instant its packet arrives —
+   same opacity-pulse register as .beacon-dot, kept as its own class so it
+   can be positioned independently at each slot's arrival point. */
+.signal-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--beacon-contrast);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+.signal-dot.is-live {
+  animation: beacon-pulse 1.4s var(--ease-signal) 2;
+}
+
+/* The traveler — the ONE element that becomes PR → event → line. Its
+   left/top/width/height are set once per build from the measured GitHub
+   slot (JS), then it only ever animates transform — cheap, and it reads
+   as one packet touring three fixed stations, not three separate fades.
+   Hidden by default: it ENTERS the first block after the three blocks
+   assemble (timeline), it's never parked there before anything else. */
+.feat-traveler {
+  position: absolute;
   z-index: 5;
+  opacity: 0;
   will-change: transform;
 }
 .trav-reg {
   position: absolute;
+  z-index:1;
   inset: 0;
   display: flex;
   align-items: center;
@@ -865,6 +950,7 @@ a {
   border-radius: 50%;
   background: var(--surface-3);
   color: var(--text-secondary);
+  border: 2px dashed var(--status-positive-hue);
 }
 
 /* Merge chip */
@@ -882,9 +968,12 @@ a {
 }
 .trav-chip-done {
   display: none;
-  border-color: transparent;
-  background: transparent;
+  flex: none;
+  position: absolute;
+  right: 5px;
   color: var(--status-positive-hue);
+
+  border-radius: var(--radius-xs);
 }
 .trav-dot {
   width: 7px;
@@ -894,6 +983,7 @@ a {
   display: inline-block;
   margin-right: 6px;
   vertical-align: 1px;
+  display: none;
 }
 
 /* Follow-up example fills the timeline's second slot. */
@@ -912,7 +1002,6 @@ a {
   justify-content: space-between;
   gap: 8px;
   padding: 12px 14px;
-  border-top: 1px solid var(--border-subtle);
   font-size: 12px;
   color: var(--text-tertiary);
   position: relative;
@@ -1098,9 +1187,6 @@ a {
   .feat-caption {
     font-size: 12px;
   }
-  .feat-panel[data-feat="gh"] {
-    z-index: 2;
-  }
   /* Very short viewports (split-screen / landscape phones): drop the payoff
      line and tighten rows so everything still fits 100dvh unhidden. */
   @media (max-height: 560px) {
@@ -1237,7 +1323,9 @@ a {
   border-radius: var(--radius-sm);
   font-size: 12px;
   color: var(--text-secondary);
-  transition: background var(--duration-fast) var(--ease-signal), color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
 }
 .demo-nav-row:hover {
   background: var(--surface-2);
@@ -1397,7 +1485,9 @@ a {
   font-weight: 510;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-signal), color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
 }
 .cds-tab:hover {
   background: var(--surface-2);
@@ -1430,7 +1520,9 @@ a {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
-  transition: background var(--duration-fast) var(--ease-signal), border-color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    border-color var(--duration-fast) var(--ease-signal);
 }
 .cds-tl-row:hover {
   background: var(--surface-2);
@@ -1525,7 +1617,9 @@ a {
   font-size: 13px;
   text-align: left;
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-signal), color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
 }
 .palp-row:hover,
 .palp-row.is-active {
@@ -1618,7 +1712,9 @@ a {
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-signal), color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
 }
 .calg-nav-btn:hover {
   background: var(--surface-3);
@@ -1634,7 +1730,9 @@ a {
   font-weight: 510;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-signal), color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
 }
 .calg-today:hover {
   background: var(--surface-2);
@@ -1696,7 +1794,9 @@ a {
   color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
-  transition: background var(--duration-fast) var(--ease-signal), color var(--duration-fast) var(--ease-signal);
+  transition:
+    background var(--duration-fast) var(--ease-signal),
+    color var(--duration-fast) var(--ease-signal);
 }
 .calg-chip:hover {
   background: var(--surface-3);
@@ -1956,7 +2056,8 @@ a {
   color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-signal),
+  transition:
+    background var(--duration-fast) var(--ease-signal),
     color var(--duration-fast) var(--ease-signal),
     transform var(--duration-instant) var(--ease-signal);
 }
@@ -2052,7 +2153,8 @@ a {
   border-radius: var(--radius-sm);
   font-size: 13px;
   animation: term-row-in var(--duration-panel) var(--ease-signal) both;
-  transition: background var(--duration-fast) var(--ease-signal),
+  transition:
+    background var(--duration-fast) var(--ease-signal),
     border-color var(--duration-fast) var(--ease-signal);
 }
 .term-row:hover {
@@ -2158,7 +2260,8 @@ a {
 .pulse-status.is-live .pulse-status-dot {
   background: var(--status-positive-hue);
   /* The glow derives from the hue token — no second hardcoded color. */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-positive-hue) 18%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--status-positive-hue) 18%, transparent);
 }
 .pulse-count {
   font-size: 11px;
@@ -2210,7 +2313,8 @@ a {
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   min-width: 0;
-  transition: background var(--duration-fast) var(--ease-signal),
+  transition:
+    background var(--duration-fast) var(--ease-signal),
     border-color var(--duration-fast) var(--ease-signal);
 }
 .pulse-row:hover {
@@ -2542,7 +2646,12 @@ a {
   .site-topbar {
     padding: 0 var(--space-4);
   }
+  /* The primary CTA keeps its short label on phones — a bare arrow that
+     "signs in" reads as nothing. Only the demo fallback goes icon-only. */
   .btn-cta-label {
+    display: inline;
+  }
+  .topbar-actions .btn[href="#demo"] .btn-cta-label {
     display: none;
   }
 }

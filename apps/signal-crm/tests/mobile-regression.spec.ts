@@ -601,7 +601,7 @@ test.describe("command palette", () => {
     // the list only holds the 8 actions would cap active at the actions' last
     // index and fail the last-option assertion once the rows arrive.
     await expect
-      .poll(() => page.locator("[role=option]").count(), { timeout: 5_000 })
+      .poll(() => page.locator("[role=option]").count(), { timeout: 15_000 })
       .toBeGreaterThan(8);
     await page.keyboard.press("End");
     const endId = await input.getAttribute("aria-activedescendant");

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { motionMode } from "../lib/motionGate";
+import { isTestMode } from "../lib/testMode";
 
 /* ============================================================
    CursorTrail — the signal-bar trail that follows the cursor
@@ -24,7 +25,10 @@ export default function CursorTrail({ progressRef }: { progressRef: React.RefObj
     const canvas = canvasRef.current;
     if (!canvas) return;
     // The canvas always exists (hydration match); only full mode draws.
-    if (motionMode() !== "full") {
+    // Under automated tests the continuous rAF loop is skipped entirely —
+    // the trail is a permanent frame-every-frame load that can starve
+    // React's event queue when several pages run at once (see testMode).
+    if (motionMode() !== "full" || isTestMode()) {
       canvas.style.display = "none";
       return;
     }

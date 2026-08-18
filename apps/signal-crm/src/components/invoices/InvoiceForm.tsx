@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Modal } from "../ui/Modal";
@@ -61,6 +61,9 @@ export function InvoiceForm({
   const [manualAmount, setManualAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // True once the user hand-edits the tax amount — after that, line-item
+  // changes stop re-deriving it (a hand-tuned amount is the user's call).
+  const taxAmountTouched = useRef(false);
 
   const editing = existing !== undefined;
 
@@ -85,16 +88,55 @@ export function InvoiceForm({
   const addManual = () => {
     const amount = BigInt(Math.round(parseFloat(manualAmount) * 100));
     if (!manualDesc.trim() || amount <= 0n) return;
-    setManualItems([...manualItems, { description: manualDesc.trim(), amount }]);
+    const next = [...manualItems, { description: manualDesc.trim(), amount }];
+    setManualItems(next);
+    rederiveTax(next);
     setManualDesc("");
     setManualAmount("");
   };
 
   const addSuggestion = (s: (typeof suggestions)[number]) => {
-    setManualItems([...manualItems, { description: s.title, amount: 500_00n, activityId: s.activityId }]);
+    const next = [...manualItems, { description: s.title, amount: 500_00n, activityId: s.activityId }];
+    setManualItems(next);
+    rederiveTax(next);
   };
 
   const subtotalMinor = manualItems.reduce((sum, i) => sum + i.amount, 0n);
+
+  /** Rate (%) → tax amount in minor units, rounded to the nearest cent. */
+  const deriveTaxMinor = (rateStr: string, sub: bigint): bigint | null => {
+    const rate = parseFloat(rateStr);
+    if (rateStr.trim() === "" || Number.isNaN(rate) || rate < 0) return null;
+    return BigInt(Math.round((Number(sub) * rate) / 100));
+  };
+
+  /** When a rate is set and the amount hasn't been hand-tuned, keep the
+   *  amount in lockstep with the subtotal — the amount input stays derived
+   *  from the rate until the user takes over that field. */
+  const rederiveTax = (items: PickedItem[]) => {
+    if (taxAmountTouched.current) return;
+    const derived = deriveTaxMinor(taxRate, items.reduce((s, i) => s + i.amount, 0n));
+    if (derived !== null) setTaxAmount((Number(derived) / 100).toFixed(2));
+  };
+
+  // §— entering a percentage computes the amount immediately: type 7.5 and
+  // the tax-amount input fills with subtotal × 7.5% before the user moves on.
+  const onTaxRateChange = (v: string) => {
+    setTaxRate(v);
+    const derived = deriveTaxMinor(v, subtotalMinor);
+    if (derived !== null) {
+      setTaxAmount((Number(derived) / 100).toFixed(2));
+      taxAmountTouched.current = false; // a rate change re-derives
+    }
+  };
+
+  // Hand-editing the amount takes the field out of derived mode — never
+  // clobber a manual figure on the next line-item change.
+  const onTaxAmountChange = (v: string) => {
+    setTaxAmount(v);
+    taxAmountTouched.current = true;
+  };
+
   const taxMinor = BigInt(Math.round(parseFloat(taxAmount || "0") * 100));
   const totalMinor = subtotalMinor + taxMinor;
 
@@ -194,7 +236,11 @@ export function InvoiceForm({
           <div className="list-row" key={i}>
             <span className="item-desc">{item.description}</span>
             <span className="num">{formatMoney(item.amount, currency)}</span>
-            <button type="button" className="icon-btn" aria-label="Remove item" onClick={() => setManualItems(manualItems.filter((_, j) => j !== i))}>
+            <button type="button" className="icon-btn" aria-label="Remove item" onClick={() => {
+              const next = manualItems.filter((_, j) => j !== i);
+              setManualItems(next);
+              rederiveTax(next);
+            }}>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
@@ -233,11 +279,11 @@ export function InvoiceForm({
       <div className="field-row">
         <div className="field">
           <label htmlFor="iv-taxrate">Tax rate (%)</label>
-          <input id="iv-taxrate" className="input" type="number" step="0.01" min="0" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} placeholder="e.g. 7.5" />
+          <input id="iv-taxrate" className="input" type="number" step="0.01" min="0" value={taxRate} onChange={(e) => onTaxRateChange(e.target.value)} placeholder="e.g. 7.5" />
         </div>
         <div className="field">
           <label htmlFor="iv-tax">Tax amount</label>
-          <input id="iv-tax" className="input" type="number" step="0.01" min="0" value={taxAmount} onChange={(e) => setTaxAmount(e.target.value)} placeholder="0.00" />
+          <input id="iv-tax" className="input" type="number" step="0.01" min="0" value={taxAmount} onChange={(e) => onTaxAmountChange(e.target.value)} placeholder="0.00" />
         </div>
       </div>
       <div className="invoice-total num">

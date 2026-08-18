@@ -177,7 +177,7 @@ export function ClientsList() {
                       type="button"
                       className="th-btn"
                       onClick={() => col.key !== "quick" && toggleSort(col.key as SortKey)}
-                      aria-label={col.key !== "quick" ? `Sort by ${col.label}` : undefined}
+                      aria-label={col.key !== "quick" ? `Sort by ${col.label}` : "Quick actions"}
                       tabIndex={col.key === "quick" ? -1 : 0}
                       style={col.key === "quick" ? { width: 36 } : undefined}
                     >

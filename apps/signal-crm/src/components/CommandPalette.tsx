@@ -56,6 +56,11 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  // Combobox rule: while the user drives the list from the keyboard (typing
+  // or arrowing), a mouse parked over a row must not override the keyboard
+  // selection. Hover resumes only after the user actually clicks a row or
+  // refocuses the input for a fresh search.
+  const [kbSession, setKbSession] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // Where focus was when the palette opened — restored on close.
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -272,6 +277,9 @@ export function CommandPalette() {
       e.preventDefault();
       items[active]?.run();
     }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End" || e.key === "Enter") {
+      setKbSession(true);
+    }
   };
 
   if (!open) return null;
@@ -306,6 +314,15 @@ export function CommandPalette() {
               onChange={(e) => {
                 setQuery(e.target.value);
                 setActive(0);
+                setKbSession(true);
+              }}
+              onFocus={() => {
+                // A fresh search starts keyboard-driven: active resets to
+                // the first row and hover is suspended — a mouse parked
+                // over the list must not claim the row under it before the
+                // first keystroke lands.
+                setActive(0);
+                setKbSession(true);
               }}
             />
             <kbd className="kbd">esc</kbd>
@@ -329,8 +346,14 @@ export function CommandPalette() {
                       id={`palette-opt-${idx}`}
                       aria-selected={idx === active}
                       className={`palette-row${idx === active ? " active" : ""}`}
-                      onMouseEnter={() => setActive(idx)}
-                      onClick={() => it.run()}
+                      onMouseEnter={() => {
+                        if (kbSession) return;
+                        setActive(idx);
+                      }}
+                      onClick={() => {
+                        setKbSession(false);
+                        it.run();
+                      }}
                     >
                       <span className="palette-avatar num" aria-hidden="true">
                         {it.group === "Invoices" ? <IconInvoices style={{ width: 14, height: 14 }} /> : initials(it.label)}

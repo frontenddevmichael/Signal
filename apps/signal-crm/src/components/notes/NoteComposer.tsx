@@ -28,7 +28,14 @@ export function NoteComposer({
     extensions: [StarterKit],
     content: "",
     editorProps: {
-      attributes: { class: "note-editor", "aria-label": "Note body" },
+      attributes: {
+        class: "note-editor",
+        // role=textbox makes the aria-label valid on the contenteditable div
+        // (axe aria-prohibited-attr otherwise flags the label on a bare div)
+        // and gives screen readers an announced rich-text entry point.
+        role: "textbox",
+        "aria-label": "Note body",
+      },
     },
   });
 

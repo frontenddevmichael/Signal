@@ -292,6 +292,11 @@ export default defineSchema({
     type: v.union(v.literal("proposal"), v.literal("contract"), v.literal("invoice_pdf"), v.literal("other")),
     provider: v.union(v.literal("google_docs"), v.literal("documenso"), v.literal("pdf")),
     providerRef: v.string(),
+    // §generated-docs — template-generated proposals/contracts carry a human
+    // title and the rendered body (plain-text paragraphs). Optional so rows
+    // from earlier phases (invoice_pdf links) stay valid without them.
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("sent"), v.literal("viewed"), v.literal("signed")),
     createdAt: v.number(),
   }).index("by_contact", ["contactId"]),
@@ -497,6 +502,25 @@ export default defineSchema({
     /** Contact name for the UI toast label. */
     label: v.string(),
     snapshot: v.string(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  /** §documents undo — one row per removed document, holding its snapshot so
+   *  an Undo toast can re-insert it within the 10-minute window. */
+  documentUndo: defineTable({
+    userId: v.id("users"),
+    label: v.string(),
+    snapshot: v.object({
+      contactId: v.id("contacts"),
+      projectId: v.optional(v.id("projects")),
+      type: v.union(v.literal("proposal"), v.literal("contract"), v.literal("invoice_pdf"), v.literal("other")),
+      provider: v.union(v.literal("google_docs"), v.literal("documenso"), v.literal("pdf")),
+      providerRef: v.string(),
+      title: v.optional(v.string()),
+      content: v.optional(v.string()),
+      status: v.union(v.literal("draft"), v.literal("sent"), v.literal("viewed"), v.literal("signed")),
+      createdAt: v.number(),
+    }),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
 });

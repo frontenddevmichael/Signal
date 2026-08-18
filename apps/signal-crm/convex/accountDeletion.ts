@@ -138,6 +138,8 @@ export const deleteAccount = mutation({
     // §23.3 — undo snapshots are user-scoped scratch data; gone with the account.
     const undoRows = await ctx.db.query("contactUndo").collect();
     for (const u of undoRows.filter((u) => u.userId === userId)) await ctx.db.delete(u._id);
+    const docUndoRows = await ctx.db.query("documentUndo").collect();
+    for (const u of docUndoRows.filter((u) => u.userId === userId)) await ctx.db.delete(u._id);
 
     const keys = await ctx.db.query("apiKeys").collect();
     for (const k of keys.filter((k) => k.userId === userId)) await ctx.db.delete(k._id);

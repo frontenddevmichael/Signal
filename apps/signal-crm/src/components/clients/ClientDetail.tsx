@@ -20,6 +20,7 @@ import { RepoActivity } from "../repos/RepoActivity";
 import { GmailSetupBlock } from "../gmail/GmailSetupBlock";
 import { ReplyBox } from "../gmail/ReplyBox";
 import { MeetingsPanel } from "../meetings/MeetingsPanel";
+import { DocumentsPanel } from "../documents/DocumentsPanel";
 import { PortalLinkButton } from "../portal/PortalLinkButton";
 import { IconMoney, IconPlus, IconRepo, IconSearch } from "../Icons";
 
@@ -301,16 +302,12 @@ export function ClientDetail() {
 
       {tab === "repos" && (
         <section role="tabpanel" id="client-panel-repos" aria-labelledby="client-tab-repos">
-          <RepoActivity contactId={contactId} />
+          <RepoActivity contactId={contactId} onGoToProjects={() => setTab("projects")} />
         </section>
       )}
       {tab === "docs" && (
         <section role="tabpanel" id="client-panel-docs" aria-labelledby="client-tab-docs">
-          <EmptyState
-            icon={<IconRepo aria-hidden="true" />}
-            title="No documents"
-            body="Proposals and contracts will live here, generated from templates and linked back to this client."
-          />
+          <DocumentsPanel contactId={contactId} />
         </section>
       )}
       {tab === "financials" && (
@@ -365,6 +362,22 @@ export function ClientDetail() {
               icon={<IconMoney aria-hidden="true" />}
               title="No invoices yet"
               body="Create an invoice from a project and it lands here — total billed, open balance and payment history at a glance."
+              action={
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    // Hand off through sessionStorage: the bus event can fire
+                    // before the invoices list mounts (a race the palette
+                    // never hits because it's always mounted). The list
+                    // checks + clears this on mount.
+                    sessionStorage.setItem("signal:new-invoice", "1");
+                    navigate("/invoices");
+                  }}
+                >
+                  Create invoice
+                </button>
+              }
             />
           )}
         </section>

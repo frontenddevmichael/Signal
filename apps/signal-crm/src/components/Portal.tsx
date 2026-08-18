@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "convex/react";
 import { useConvexAuth } from "@convex-dev/auth/react";
 import { useEffect, useRef, useState } from "react";
@@ -112,7 +112,14 @@ export function Portal() {
                   <strong>{p.name}</strong>
                   <div className="muted">
                     {p.status}
-                    {p.deadline ? ` · due ${new Date(p.deadline).toLocaleDateString()}` : ""}
+                    {p.deadline ? (
+                      <>
+                        {" · due "}
+                        <span className="num">{new Date(p.deadline).toLocaleDateString()}</span>
+                      </>
+                    ) : (
+                      ""
+                    )}
                   </div>
                 </div>
               </li>
@@ -135,7 +142,7 @@ export function Portal() {
                   <strong>{inv.number}</strong>
                   <div className="muted">{inv.status}</div>
                 </div>
-                <div>
+                <div className="num">
                   {formatMoney(inv.total, inv.currency)}
                   <div className="muted">{Number(inv.amountPaid) > 0 ? `${formatMoney(inv.amountPaid, inv.currency)} paid` : "unpaid"}</div>
                 </div>
@@ -174,6 +181,7 @@ export function Portal() {
  * by design), so refreshing the preview shows the used-link state.
  */
 function PortalPreview({ onOpen }: { onOpen: (token: string) => void }) {
+  const navigate = useNavigate();
   const contacts = useQuery(api.contacts.list, {});
   const createLink = useMutation(api.portal.createPortalLink);
   const { push } = useToasts();
@@ -209,7 +217,19 @@ function PortalPreview({ onOpen }: { onOpen: (token: string) => void }) {
       {contacts === undefined ? (
         <div className="skeleton" style={{ height: 120 }} aria-hidden="true" />
       ) : contacts.length === 0 ? (
-        <EmptyState title="No clients yet" body="Add a client to preview their portal view." />
+        <EmptyState
+            title="No clients yet"
+            body="Add a client to preview their portal view."
+            action={
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => navigate("/clients")}
+              >
+                Add a client
+              </button>
+            }
+          />
       ) : (
         <ul className="portal-list">
           {contacts.map((c) => (

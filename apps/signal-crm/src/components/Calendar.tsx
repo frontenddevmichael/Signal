@@ -117,7 +117,7 @@ export function Calendar() {
     <div className="page calendar-page" style={{ maxWidth: 980 }}>
       <div className="cal-head">
         <div className="cal-title">
-          <h2>{monthTitle}</h2>
+          <h2 className="num">{monthTitle}</h2>
           {events !== undefined && (
             <span className="cal-count num" aria-label={`${events.length} events`}>
               {events.length} event{events.length === 1 ? "" : "s"}
@@ -158,47 +158,55 @@ export function Calendar() {
             ))}
           </div>
           <div className="cal-grid" role="grid" aria-label={`Calendar for ${monthTitle}`} onKeyDown={(e) => onGridKey(e, focusIdx)}>
-            {cells.map((cell, i) => {
-              const key = dayKey(cell.date.getTime());
-              const dayEvents = byDay.get(key) ?? [];
-              const isToday = key === TODAY_KEY;
-              return (
-                <div
-                  key={key}
-                  ref={(el) => {
-                    cellRefs.current[i] = el;
-                  }}
-                  role="gridcell"
-                  aria-label={cell.date.toDateString()}
-                  tabIndex={i === focusIdx ? 0 : -1}
-                  className={`cal-cell${cell.inMonth ? "" : " out"}${isToday ? " today" : ""}`}
-                >
-                  <span className="cal-daynum num">{cell.date.getDate()}</span>
-                  <div className="cal-chips">
-                    {dayEvents.slice(0, 3).map((ev) => {
-                      const Icon = KIND_ICON[ev.kind];
-                      return (
-                        <button
-                          key={ev.id}
-                          type="button"
-                          className={`cal-chip${ev.status === "overdue" ? " overdue" : ""}${ev.status === "partial" ? " partial" : ""}`}
-                          title={`${ev.title} — ${ev.subtitle}`}
-                          aria-label={`${ev.title} — ${ev.subtitle}`}
-                          onClick={() => goTo(ev)}
-                        >
-                          <span className="cal-dot" aria-hidden="true" />
-                          <Icon aria-hidden="true" style={{ width: 11, height: 11 }} />
-                          <span className="cal-chip-title">{ev.title}</span>
-                        </button>
-                      );
-                    })}
-                    {dayEvents.length > 3 && (
-                      <span className="cal-more num">+{dayEvents.length - 3} more</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {/* Cells are grouped into role=row wrappers — the ARIA grid
+                contract (a grid must contain rows of gridcells, never bare
+                gridcells). 42 cells = 6 rows of 7. */}
+            {Array.from({ length: Math.ceil(cells.length / 7) }, (_, row) => (
+              <div key={`row-${row}`} role="row" className="cal-row">
+                {cells.slice(row * 7, row * 7 + 7).map((cell, j) => {
+                  const i = row * 7 + j;
+                  const key = dayKey(cell.date.getTime());
+                  const dayEvents = byDay.get(key) ?? [];
+                  const isToday = key === TODAY_KEY;
+                  return (
+                    <div
+                      key={key}
+                      ref={(el) => {
+                        cellRefs.current[i] = el;
+                      }}
+                      role="gridcell"
+                      aria-label={cell.date.toDateString()}
+                      tabIndex={i === focusIdx ? 0 : -1}
+                      className={`cal-cell${cell.inMonth ? "" : " out"}${isToday ? " today" : ""}`}
+                    >
+                      <span className="cal-daynum num">{cell.date.getDate()}</span>
+                      <div className="cal-chips">
+                        {dayEvents.slice(0, 3).map((ev) => {
+                          const Icon = KIND_ICON[ev.kind];
+                          return (
+                            <button
+                              key={ev.id}
+                              type="button"
+                              className={`cal-chip${ev.status === "overdue" ? " overdue" : ""}${ev.status === "partial" ? " partial" : ""}`}
+                              title={`${ev.title} — ${ev.subtitle}`}
+                              aria-label={`${ev.title} — ${ev.subtitle}`}
+                              onClick={() => goTo(ev)}
+                            >
+                              <span className="cal-dot" aria-hidden="true" />
+                              <Icon aria-hidden="true" style={{ width: 11, height: 11 }} />
+                              <span className="cal-chip-title">{ev.title}</span>
+                            </button>
+                          );
+                        })}
+                        {dayEvents.length > 3 && (
+                          <span className="cal-more num">+{dayEvents.length - 3} more</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {/* §11 mobile legend — rendered only below 640px where titles are

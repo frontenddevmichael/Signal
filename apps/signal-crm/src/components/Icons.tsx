@@ -229,6 +229,16 @@ export function IconMoney(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconDoc(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Svg {...props}>
+      <path d="M6 2h8l4 4v16H6z" />
+      <path d="M14 2v4h4" />
+      <path d="M9 12h6M9 16h6" />
+    </Svg>
+  );
+}
+
 export function IconGitHub(props: SVGProps<SVGSVGElement>) {
   return (
     <Svg {...props}>

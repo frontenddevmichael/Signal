@@ -15,7 +15,7 @@ const GLYPH: Record<string, string> = {
  * once per project_repos link, §9) — the same events also appear on the
  * timeline via the shared writeTimelineEvent helper.
  */
-export function RepoActivity({ contactId }: { contactId: string }) {
+export function RepoActivity({ contactId, onGoToProjects }: { contactId: string; onGoToProjects?: () => void }) {
   const rows = useQuery(api.github.activityForContact, { contactId: contactId as any });
 
   if (rows === undefined) {
@@ -32,7 +32,14 @@ export function RepoActivity({ contactId }: { contactId: string }) {
     return (
       <EmptyState
         title="No repo activity yet"
-        body="Merged PRs, closed issues and deploys for this client's linked repos land here — and on the timeline."
+        body="Merged PRs, closed issues and deploys for this client's linked repos land here — and on the timeline. Repos are linked from a project."
+        action={
+          onGoToProjects ? (
+            <button type="button" className="btn btn-primary" onClick={onGoToProjects}>
+              Go to projects
+            </button>
+          ) : undefined
+        }
       />
     );
   }

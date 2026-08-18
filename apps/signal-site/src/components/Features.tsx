@@ -9,13 +9,33 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 /* ============================================================
    Features — the pipeline scrollytelling (brief §3.2)
+
    One DOM element — a merged PR — continuously transforms:
    GitHub row → timeline event → invoice line item, scrubbed
    by scroll position (the hero's technique, calmer register).
    A second example (Follow-up completed) fills the timeline
    and deliberately does NOT bill — the pipeline discriminates.
-   Calm: panels assemble once at pin start, everything else is
-   precise positioning, no spectacle.
+
+   ARCHITECTURE — panels literally hand data to one another:
+   1. A dedicated "signal layer" sits ABOVE the panel grid as a
+      SIBLING (not a child of any one panel), so the traveling
+      packet is never clipped by a panel's own overflow:hidden.
+   2. The three blocks assemble FIRST, each ghost slot already
+      showing where the row will land. The traveler then ENTERS
+      the first block as its own beat — it isn't parked there
+      before anything else appears.
+   3. Every "arrival" is a GSAP label. Everything that reacts to
+      an arrival (chip morph, panel glow, followup fill, total
+      tick, arrival pulse) is positioned RELATIVE to that label
+      ("<", "+=", label refs) instead of an absolute timestamp.
+      Insert a beat earlier in the sequence and everything
+      downstream re-flows correctly — nothing to re-tune by eye.
+   4. Each panel flips a `data-received` attribute at the exact
+      label its packet lands; a plain CSS transition on that
+      attribute is the panel's own "I got it" reaction. This
+      stays scrub-reversible (GSAP timeline .set() calls revert
+      correctly on scrub-back) without needing real DOM events,
+      which break under fast/jump scrubbing.
    ============================================================ */
 
 export default function Features() {
@@ -23,6 +43,8 @@ export default function Features() {
   const resizeTimer = useRef<number | undefined>(undefined);
   const pinWrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const arenaRef = useRef<HTMLDivElement>(null);
+  const signalLayerRef = useRef<HTMLDivElement>(null);
   const ghSlotRef = useRef<HTMLDivElement>(null);
   const tlSlotRef = useRef<HTMLDivElement>(null);
   const invSlotRef = useRef<HTMLDivElement>(null);
@@ -31,14 +53,17 @@ export default function Features() {
   const followupRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
+  const dotTlRef = useRef<HTMLDivElement>(null);
+  const dotInvRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
       const section = sectionRef.current;
       const pinWrap = pinWrapRef.current;
       const stage = stageRef.current;
+      const arena = arenaRef.current;
       const traveler = travelerRef.current;
-      if (!section || !pinWrap || !stage || !traveler) return;
+      if (!section || !pinWrap || !stage || !arena || !traveler) return;
       const mode = motionMode();
       if (import.meta.env.DEV) {
         document.body.dataset.featEffect = mode;
@@ -51,13 +76,18 @@ export default function Features() {
 
       let cleanupCurrent: (() => void) | undefined;
 
-      /** Slot positions relative to the stage — measured fresh each build. */
+      /** Slot rects relative to the arena — the shared coordinate space
+       *  for the traveler and the arrival pulses. Measuring against the
+       *  arena (not the individual panels) keeps the traveler's motion
+       *  correct regardless of the panel stacking order. */
       const measure = () => {
-        const sr = stage.getBoundingClientRect();
+        const ar = arena.getBoundingClientRect();
         const rel = (el: HTMLElement | null) => {
-          if (!el) return { x: 0, y: 0, w: 0, h: 0 };
+          if (!el) return { x: 0, y: 0, w: 0, h: 0, cx: 0, cy: 0 };
           const r = el.getBoundingClientRect();
-          return { x: r.left - sr.left, y: r.top - sr.top, w: r.width, h: r.height };
+          const x = r.left - ar.left;
+          const y = r.top - ar.top;
+          return { x, y, w: r.width, h: r.height, cx: x + r.width / 2, cy: y + r.height / 2 };
         };
         return {
           gh: rel(ghSlotRef.current),
@@ -67,7 +97,8 @@ export default function Features() {
         };
       };
 
-      /** Shared morph/assembly/fill tweens — axis-agnostic. */
+      /** Shared morph/assembly/fill tweens — axis-agnostic, driven
+       *  entirely by relative positioning off labels. */
       const addMorph = (tl: gsap.core.Timeline, dx1: number, dy1: number, dx2: number, dy2: number) => {
         const q = (sel: string) => section?.querySelector<HTMLElement>(sel);
         const regGh = q("[data-trav-gh]");
@@ -84,73 +115,136 @@ export default function Features() {
         const caption = captionRef.current;
         const title = titleRef.current;
         const panels = section?.querySelectorAll<HTMLElement>("[data-feat]");
+        const ghPanel = q('[data-feat="gh"]');
+        const tlPanel = q('[data-feat="tl"]');
+        const invPanel = q('[data-feat="inv"]');
+        const dotTl = dotTlRef.current;
+        const dotInv = dotInvRef.current;
 
-        // Assembly (pin start) — staggered, calm.
-        if (title) tl.fromTo(title, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" }, 0);
+        // Reset every panel's "received" flag and the traveler's parked
+        // visibility at the very start of the sequence, so scrubbing back
+        // to zero always reads as un-fed and un-entered.
+        tl.set([tlPanel, invPanel].filter(Boolean) as HTMLElement[], { attr: { "data-received": "false" } }, 0);
+        tl.set(traveler, { opacity: 0 }, 0);
+        if (dotTl) tl.set(dotTl, { opacity: 0, scale: 0.6 }, 0);
+        if (dotInv) tl.set(dotInv, { opacity: 0, scale: 0.6 }, 0);
+
+        // ---- Assembly (pin start) — staggered, calm. The THREE BLOCKS
+        // land first, each with its own ghost slot already showing where
+        // the traveling row will land. The traveler itself stays hidden
+        // until the blocks are settled — it enters the first block as its
+        // own beat, it isn't parked there before anything else appears. ----
+        tl.addLabel("assemble");
+        if (title) {
+          tl.fromTo(title, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" }, "assemble");
+        }
         if (panels) {
           panels.forEach((p, i) => {
             tl.fromTo(
               p,
               { opacity: 0, y: 22 },
               { opacity: 1, y: 0, duration: 0.32, ease: "power2.out" },
-              0.06 + i * 0.08
+              i === 0 ? "assemble+=0.06" : "<0.08"
             );
           });
         }
+        tl.addLabel("assembled");
 
-        // Merge beat — the PR chips swap, a resolved pulse lands.
-        if (chipOpen && chipDone) {
-          tl.to(chipOpen, { opacity: 0, duration: 0.14 }, 0.34);
+        // ---- The traveler enters the FIRST block — a settled landing
+        // into the GitHub slot, after the blocks have assembled. ----
+        tl.addLabel("enter", "assembled+=0.25");
+        if (regGh) tl.set(regGh, { opacity: 1 }, "enter");
+        tl.fromTo(traveler, { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, "enter");
+        if (ghGhost) tl.to(ghGhost, { opacity: 0, duration: 0.2 }, "enter+=0.25");
+
+        // ---- Merge beat — the PR chips swap. ----
+        tl.addLabel("merge", "enter+=0.3");
+        if (chipOpen) tl.to(chipOpen, { opacity: 0, duration: 0.14 }, "merge");
+        if (chipDone) {
           tl.fromTo(
             chipDone,
             { opacity: 0, scale: 0.9, display: "inline-flex" },
             { opacity: 1, scale: 1, duration: 0.2, ease: "power2.out" },
-            0.4
+            "merge+=0.06"
           );
           tl.fromTo(
             chipDone,
             { boxShadow: "0 0 0 0 rgba(110,139,110,0.35)" },
             { boxShadow: "0 0 0 8px rgba(110,139,110,0)", duration: 0.8, ease: "power1.out" },
-            0.42
+            "<"
           );
         }
+        tl.addLabel("merged", "merge+=0.18");
 
-        // Travel 1: GitHub row -> timeline event (morphs mid-flight).
-        if (ghGhost) tl.to(ghGhost, { opacity: 0, duration: 0.2 }, 0.52);
-        tl.to(traveler, { x: dx1, y: dy1, duration: 0.85, ease: "power2.inOut" }, 0.55);
-        if (regGh) tl.to(regGh, { opacity: 0, y: -4, duration: 0.18 }, 1.0);
-        if (regTl) tl.fromTo(regTl, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.22 }, 1.06);
-        if (tlGhost) tl.to(tlGhost, { opacity: 0, duration: 0.2 }, 1.22);
+        // ---- Travel 1: GitHub row -> timeline event. The packet only
+        // reads at the stations: it fades out as it leaves the source slot,
+        // stays invisible over the gap, and fades back in as it enters the
+        // destination slot — it never hovers over the panels or the
+        // background between them. No connector line; the arrival pulse
+        // and the panel's "received" glow carry the moment of landing. ----
+        tl.addLabel("travel1-start", "merged+=0.03");
+        tl.to(traveler, { opacity: 0, duration: 0.2, ease: "power1.in" }, "travel1-start");
+        tl.to(traveler, { x: dx1, y: dy1, duration: 0.85, ease: "power2.inOut" }, "travel1-start");
+        tl.addLabel("gh-arrive", "travel1-start+=0.85");
+        tl.to(traveler, { opacity: 1, duration: 0.2, ease: "power1.out" }, "gh-arrive-=0.2");
+        // The instant the packet lands, the timeline panel is marked as
+        // fed — its border glow (pure CSS transition) and the arrival
+        // pulse both key off this one moment.
+        if (tlPanel) tl.set(tlPanel, { attr: { "data-received": "true" } }, "gh-arrive");
+        if (dotTl) {
+          tl.to(dotTl, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out" }, "gh-arrive")
+            .to(dotTl, { opacity: 0, duration: 0.5, ease: "power1.out" }, "gh-arrive+=0.3");
+        }
+        if (regGh) tl.to(regGh, { opacity: 0, y: -4, duration: 0.18 }, "gh-arrive+=0.05");
+        if (regTl) tl.fromTo(regTl, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.22 }, "<0.05");
+        if (tlGhost) tl.to(tlGhost, { opacity: 0, duration: 0.2 }, "<0.1");
+        tl.addLabel("tl-settled", "gh-arrive+=0.42");
 
-        // Travel 2: timeline event -> invoice line item.
-        tl.to(traveler, { x: dx2, y: dy2, duration: 0.85, ease: "power2.inOut" }, 1.4);
-        if (regTl) tl.to(regTl, { opacity: 0, y: -4, duration: 0.18 }, 1.85);
-        if (regInv) tl.fromTo(regInv, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.22 }, 1.91);
-        if (invGhost) tl.to(invGhost, { opacity: 0, duration: 0.2 }, 2.07);
+        // ---- Travel 2: timeline event -> invoice line item. Positioned
+        // relative to "tl-settled", not to a global clock. Same station-only
+        // visibility as Travel 1 — fade out on departure, hidden over the
+        // gap, fade back in on arrival. ----
+        tl.addLabel("travel2-start", "tl-settled+=0.1");
+        tl.to(traveler, { opacity: 0, duration: 0.2, ease: "power1.in" }, "travel2-start");
+        tl.to(traveler, { x: dx2, y: dy2, duration: 0.85, ease: "power2.inOut" }, "travel2-start");
+        tl.addLabel("inv-arrive", "travel2-start+=0.85");
+        tl.to(traveler, { opacity: 1, duration: 0.2, ease: "power1.out" }, "inv-arrive-=0.2");
+        if (invPanel) tl.set(invPanel, { attr: { "data-received": "true" } }, "inv-arrive");
+        if (dotInv) {
+          tl.to(dotInv, { opacity: 1, scale: 1, duration: 0.16, ease: "power2.out" }, "inv-arrive")
+            .to(dotInv, { opacity: 0, duration: 0.5, ease: "power1.out" }, "inv-arrive+=0.3");
+        }
+        if (regTl) tl.to(regTl, { opacity: 0, y: -4, duration: 0.18 }, "inv-arrive+=0.05");
+        if (regInv) tl.fromTo(regInv, { opacity: 0, y: 4 }, { opacity: 1, y: 0, duration: 0.22 }, "<0.05");
+        if (invGhost) tl.to(invGhost, { opacity: 0, duration: 0.2 }, "<0.1");
 
-        // The second example fills — follow-up completes, does NOT bill.
+        // ---- The second example fills — follow-up completes, does NOT
+        // bill. It rides in off the SAME "tl-settled" moment as the first
+        // packet's timeline landing: two things caused by one arrival. ----
         if (followup) {
           tl.fromTo(
             followup,
             { opacity: 0, y: 6 },
             { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" },
-            2.3
+            "tl-settled+=0.35"
           );
         }
 
-        // Invoice total catches up.
+        // ---- Invoice total catches up — caused by the invoice arrival,
+        // not by a coincidentally-nearby timestamp. ----
         if (totalOld && totalNew) {
-          tl.to(totalOld, { opacity: 0, duration: 0.16 }, 2.42);
-          tl.fromTo(totalNew, { opacity: 0 }, { opacity: 1, duration: 0.24 }, 2.5);
+          tl.to(totalOld, { opacity: 0, duration: 0.16 }, "inv-arrive+=0.2");
+          tl.fromTo(totalNew, { opacity: 0 }, { opacity: 1, duration: 0.24 }, "<0.08");
         }
 
-        // The calm payoff line.
+        // ---- The calm payoff line — waits for the total to have caught
+        // up, i.e. for every downstream effect of the merge to resolve. ----
         if (caption) {
           tl.fromTo(
             caption,
             { opacity: 0, y: 10 },
             { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" },
-            2.72
+            "inv-arrive+=0.72"
           );
         }
       };
@@ -161,6 +255,15 @@ export default function Features() {
         const dy1 = p.tl.y - p.gh.y;
         const dx2 = p.inv.x - p.gh.x;
         const dy2 = p.inv.y - p.gh.y;
+
+        // Park the traveler exactly over the GitHub slot's measured box —
+        // it no longer inherits this from being a DOM child of that slot,
+        // since it now lives in the sibling signal layer.
+        gsap.set(traveler, { x: 0, y: 0, left: p.gh.x, top: p.gh.y, width: p.gh.w, height: p.gh.h });
+
+        if (dotTlRef.current) gsap.set(dotTlRef.current, { left: p.tl.cx, top: p.tl.cy });
+        if (dotInvRef.current) gsap.set(dotInvRef.current, { left: p.inv.cx, top: p.inv.cy });
+
         return { dx1, dy1, dx2, dy2 };
       };
 
@@ -208,7 +311,9 @@ export default function Features() {
           }
         });
 
-        // Mobile — panels stack; travel becomes vertical.
+        // Mobile — panels stack; travel becomes vertical. Same relative
+        // label chain, just fed different dx/dy/length values from a
+        // fresh measure() — the wire and arrivals stay correct either way.
         mm.add("(max-width: 767.98px)", () => {
           const { dx1, dy1, dx2, dy2 } = buildTimeline();
           const tl = gsap.timeline({
@@ -235,6 +340,9 @@ export default function Features() {
 
       const createSimple = () => {
         // Gate path: one-shot play of the same sequence, no pin/scrub.
+        // The wire/dot/data-received choreography still runs — it just
+        // plays once instead of being scrubbed — so the "signals travel"
+        // story holds even on the reduced-motion-adjacent simple path.
         section.classList.add("is-simple");
         const { dx1, dy1, dx2, dy2 } = buildTimeline();
         const tl = gsap.timeline({ delay: 0.35 });
@@ -248,9 +356,6 @@ export default function Features() {
 
       const create = () => {
         cleanupCurrent?.();
-        // IIFE — build BOTH timelines now (this thunk-less form matches the
-        // createSimple branch: create() must run the builders immediately,
-        // returning only the cleanup to hold for teardown/resize).
         cleanupCurrent = mode === "simple" ? createSimple() : (() => {
           const killFull = createFull();
           const killProof = createProof();
@@ -291,102 +396,112 @@ export default function Features() {
           </p>
         </div>
 
-        <div className="feat-panels">
-          {/* GitHub */}
-          <div className="feat-panel" data-feat="gh">
-            <div className="feat-panel-head">
-              <Icon name="repo" label="" size={14} />
-              <span>GitHub</span>
+        <div ref={arenaRef} className="feat-arena">
+          <div className="feat-panels">
+            {/* GitHub */}
+            <div className="feat-panel" data-feat="gh">
+              <div className="feat-panel-head">
+                <Icon name="repo" label="" size={14} />
+                <span>GitHub</span>
+              </div>
+              <div className="feat-rows">
+                <div className="feat-row feat-slot" ref={ghSlotRef}>
+                  <span className="ghost" aria-hidden="true" />
+                </div>
+                <div className="feat-row is-dim">
+                  <Icon name="branch" label="" size={13} />
+                  <span className="feat-row-label">chore: bump deps</span>
+                  <span className="feat-row-meta num">open · PR #45</span>
+                </div>
+              </div>
             </div>
-            <div className="feat-rows">
-              <div className="feat-row feat-slot" ref={ghSlotRef}>
-                <span className="ghost" aria-hidden="true" />
-                {/* The traveler lives INSIDE the GitHub slot (natural SSR
-                    position), then flies to the other slots via offsets. */}
-                <div className="feat-traveler" ref={travelerRef}>
-                  <div className="trav-reg trav-gh" data-trav-gh>
-                    <Icon name="branch" label="" size={13} />
-                    <span className="feat-row-label">feat: billing export</span>
-                    <span className="feat-row-meta num">PR #42 · 2 files</span>
-                    <span className="trav-chip" data-chip-open>
-                      Merge
-                    </span>
-                    <span className="trav-chip trav-chip-done" data-chip-done>
-                      <span className="trav-dot" aria-hidden="true" />
-                      Merged
-                    </span>
-                  </div>
-                  <div className="trav-reg trav-tl" data-trav-tl>
+
+            {/* Timeline */}
+            <div className="feat-panel" data-feat="tl">
+              <div className="feat-panel-head">
+                <Icon name="clock" label="" size={14} />
+                <span>Timeline</span>
+              </div>
+              <div className="feat-rows">
+                <div className="feat-row feat-slot" ref={tlSlotRef}>
+                  <span className="ghost" aria-hidden="true" />
+                </div>
+                <div className="feat-row feat-slot" ref={tl2SlotRef}>
+                  <span className="ghost" aria-hidden="true" />
+                  <div className="feat-row feat-followup" ref={followupRef}>
                     <span className="trav-glyph">
                       <Icon name="check" label="" size={12} />
                     </span>
-                    <span className="feat-row-label">feat: billing export</span>
-                    <span className="feat-row-meta num">today 14:02</span>
-                  </div>
-                  <div className="trav-reg trav-inv" data-trav-inv>
-                    <Icon name="invoice" label="" size={13} />
-                    <span className="feat-row-label">Dev work — feat: billing export</span>
-                    <span className="feat-row-amt num">$250.00</span>
+                    <span className="feat-row-label">Follow-up completed</span>
+                    <span className="feat-row-meta num">3d</span>
                   </div>
                 </div>
               </div>
-              <div className="feat-row is-dim">
+            </div>
+
+            {/* Invoice */}
+            <div className="feat-panel" data-feat="inv">
+              <div className="feat-panel-head">
+                <Icon name="invoice" label="" size={14} />
+                <span>
+                  Invoice <span className="num inv-no">INV-2026-0007</span>
+                </span>
+              </div>
+              <div className="feat-rows">
+                <div className="feat-row is-dim">
+                  <Icon name="invoice" label="" size={13} />
+                  <span className="feat-row-label">Design system</span>
+                  <span className="feat-row-amt num">$1,250.00</span>
+                </div>
+                <div className="feat-row feat-slot" ref={invSlotRef}>
+                  <span className="ghost" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="feat-total">
+                <span>Total</span>
+                <span className="feat-total-old num" data-total-old>
+                  $1,250.00
+                </span>
+                <span className="feat-total-new num" data-total-new>
+                  $1,500.00
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* The signal layer — sibling of the panel grid, never clipped by
+              a panel's overflow:hidden. Owns the traveler and the arrival
+              pulses (no connector lines — the packet reads only at the
+              stations, so a wire would be a meaningless trail). */}
+          <div ref={signalLayerRef} className="feat-signal-layer" aria-hidden="true">
+            <div className="signal-dot" ref={dotTlRef} />
+            <div className="signal-dot" ref={dotInvRef} />
+
+            <div className="feat-traveler" ref={travelerRef}>
+              <div className="trav-reg trav-gh" data-trav-gh>
                 <Icon name="branch" label="" size={13} />
-                <span className="feat-row-label">chore: bump deps</span>
-                <span className="feat-row-meta num">open · PR #45</span>
+                <span className="feat-row-label">feat: billing export</span>
+                <span className="feat-row-meta num">PR #42 · 2 files</span>
+                <span className="trav-chip" data-chip-open>
+                  Merge
+                </span>
+                <span className="trav-chip trav-chip-done" data-chip-done>
+                  <span className="trav-dot" aria-hidden="true" />
+                  Merged
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="feat-panel" data-feat="tl">
-            <div className="feat-panel-head">
-              <Icon name="clock" label="" size={14} />
-              <span>Timeline</span>
-            </div>
-            <div className="feat-rows">
-              <div className="feat-row feat-slot" ref={tlSlotRef}>
-                <span className="ghost" aria-hidden="true" />
+              <div className="trav-reg trav-tl" data-trav-tl>
+                <span className="trav-glyph">
+                  <Icon name="check" label="" size={12} />
+                </span>
+                <span className="feat-row-label">feat: billing export</span>
+                <span className="feat-row-meta num">today 14:02</span>
               </div>
-              <div className="feat-row feat-slot" ref={tl2SlotRef}>
-                <span className="ghost" aria-hidden="true" />
-                <div className="feat-row feat-followup" ref={followupRef}>
-                  <span className="trav-glyph">
-                    <Icon name="check" label="" size={12} />
-                  </span>
-                  <span className="feat-row-label">Follow-up completed</span>
-                  <span className="feat-row-meta num">3d</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Invoice */}
-          <div className="feat-panel" data-feat="inv">
-            <div className="feat-panel-head">
-              <Icon name="invoice" label="" size={14} />
-              <span>
-                Invoice <span className="num inv-no">INV-2026-0007</span>
-              </span>
-            </div>
-            <div className="feat-rows">
-              <div className="feat-row is-dim">
+              <div className="trav-reg trav-inv" data-trav-inv>
                 <Icon name="invoice" label="" size={13} />
-                <span className="feat-row-label">Design system</span>
-                <span className="feat-row-amt num">$1,250.00</span>
+                <span className="feat-row-label">Dev work — feat: billing export</span>
+                <span className="feat-row-amt num">$250.00</span>
               </div>
-              <div className="feat-row feat-slot" ref={invSlotRef}>
-                <span className="ghost" aria-hidden="true" />
-              </div>
-            </div>
-            <div className="feat-total">
-              <span>Total</span>
-              <span className="feat-total-old num" data-total-old>
-                $1,250.00
-              </span>
-              <span className="feat-total-new num" data-total-new>
-                $1,500.00
-              </span>
             </div>
           </div>
         </div>

@@ -47,7 +47,9 @@ test("core Phase 1 flow: contact → note → project → timeline", async ({ pa
   await page.getByRole("button", { name: "Add project" }).click();
   await page.locator("#pf-name").fill(`Project ${STAMP}`);
   await page.getByRole("button", { name: "Add project" }).last().click();
-  await expect(page.getByText(`Project ${STAMP}`)).toBeVisible();
+  // The suite's 15s convention — the project-create mutation round-trips
+  // under a loaded dev backend and the default 5s window races it.
+  await expect(page.getByText(`Project ${STAMP}`)).toBeVisible({ timeout: 15_000 });
 
   // Timeline still intact and note body renders through the projection.
   await page.getByRole("tab", { name: "Timeline" }).click();

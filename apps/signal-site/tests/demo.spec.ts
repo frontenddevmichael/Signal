@@ -67,20 +67,30 @@ test.describe("interactive demo", () => {
 
     const input = page.locator(PALETTE_INPUT);
     await expect(input).toBeVisible();
-    // Unfiltered: 3 actions + 3 clients + 2 invoices.
-    await expect(page.locator(ROWS)).toHaveCount(8);
+    // Unfiltered: 3 actions + 3 clients + 2 invoices. The rows have a
+    // stagger entrance, so wait for the full set rather than asserting
+    // the count the instant the palette accepts pointer events (the
+    // palette gate resolves before the row stagger finishes under CPU
+    // load).
+    await expect(page.locator(ROWS)).toHaveCount(8, { timeout: 10_000 });
+
+    // Each fill must be followed by a wait for its filtered state to render
+    // before the next interaction — under CPU contention (parallel workers)
+    // a subsequent fill can otherwise land before the previous filter's rows
+    // commit, and the count assertion reads the stale pre-filter list.
+    const expectRows = (n: number) => expect(page.locator(ROWS)).toHaveCount(n, { timeout: 10_000 });
 
     // "nim" — the Nimbus client row AND the Nimbus invoice row survive
     // (substring match on every label, so the invoice's "— Nimbus" suffix
     // matches too); the other groups drop.
     await input.fill("nim");
-    await expect(page.locator(ROWS)).toHaveCount(2);
+    await expectRows(2);
     await expect(page.locator(LABEL)).toHaveText(["Nimbus", "INV-2026-0002 — Nimbus"]);
     await expect(page.locator(".palp-group-label")).toHaveText(["Clients", "Invoices"]);
 
     // "inv" — the action plus both invoice rows (Clients group drops).
     await input.fill("inv");
-    await expect(page.locator(ROWS)).toHaveCount(3);
+    await expectRows(3);
     await expect(page.locator(".palp-group-label")).toHaveText(["Actions", "Invoices"]);
 
     // No matches — explicit empty state, not a blank list.
@@ -91,7 +101,7 @@ test.describe("interactive demo", () => {
     // Escape clears the query and restores every row.
     await page.keyboard.press("Escape");
     await expect(input).toHaveValue("");
-    await expect(page.locator(ROWS)).toHaveCount(8);
+    await expectRows(8);
   });
 
   test("arrow keys move the active row with wrap-around; Enter selects", async ({ page }) => {
@@ -189,6 +199,10 @@ test.describe("interactive demo", () => {
     const input = page.locator(PALETTE_INPUT);
     await input.click();
     await input.fill("meridian");
+    // Under parallel load, Enter can fire before React commits the filter
+    // (the observed flake: Enter hit the unfiltered first row, Acme Co.).
+    // Wait for the filtered list to actually render before selecting.
+    await expect(page.locator(ROWS).filter({ hasText: "Meridian" })).toBeVisible();
     await page.keyboard.press("Enter");
     await expect(page.locator(".demo-topbar-client")).toHaveText("Meridian");
     await expect(page.locator(".cds-title-row h3")).toContainText("Meridian");
